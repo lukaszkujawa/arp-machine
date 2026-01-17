@@ -5,6 +5,7 @@ Midi midi;
 Arp arp(midi);
 
 void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);  // Debug LED
   midi.setup();
 }
 

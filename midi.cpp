@@ -4,12 +4,12 @@
 static const uint32_t MIDI_BAUD = 31250;
 
 Midi::Midi() {
-  _channel = 1;
+  _channel = 0;  // MIDI channel 1 (channels are 0-indexed in protocol)
 }
 
 void Midi::setup() {
-  Serial.begin(MIDI_BAUD, SERIAL_8N1);
-  delay(10);
+  Serial.begin(MIDI_BAUD);
+  delay(100);  // Longer delay for ESP8266 serial init
 }
 
 void Midi::sendByte(uint8_t b) {

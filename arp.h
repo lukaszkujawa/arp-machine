@@ -20,24 +20,27 @@ static const int8_t SCALE_STEPS[SCALE_COUNT][8] = {
 class Arp {
 
   public:
-    
-    int8_t steps[32];
-    int8_t x = 0;
 
-    Arp(Midi midi);
+    int8_t steps[64];
+    int8_t x = 0;
+    uint8_t root_note;
+    uint8_t octave;
+
+    Arp(Midi& midi);
 
     void tick();
 
 
   private:
-    Midi _midi;
-    long _next_note_on;
-    long _next_note_off;
+    Midi& _midi;
+    unsigned long _next_note_on;
+    unsigned long _next_note_off;
     uint8_t _note_playing;
 
-    long _note_delays_ms;
-    long _note_gate_ms;
+    unsigned long _note_delays_ms;
+    unsigned long _note_gate_ms;
     uint8_t _bpm;
+    ScaleId _scale;
 
     void _generate_steps();
 
