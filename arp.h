@@ -25,10 +25,12 @@ class Arp {
     int8_t x = 0;
     uint8_t root_note;
     uint8_t octave;
+    uint8_t density;
 
     Arp(Midi& midi);
 
     void tick(unsigned long now);
+    void regenerate();
     uint8_t getBpm() const { return _bpm; }
 
 
