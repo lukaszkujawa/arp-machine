@@ -5,7 +5,7 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   _next_note_off = 0;
   _note_playing = 0;
 
-  octave = 3;  // Default octave
+  octave = 4;  // Default octave (C4 = MIDI 48)
   root_note = 0;  // Default to C
   scale = MAJOR;  // Default to Major
   octaveRange = OCT_2_3;  // Default to octave 2-3 range

@@ -55,9 +55,16 @@ void Lcd::refresh(unsigned long now) {
   u8g2.setDrawColor(0);
   u8g2.drawStr(2, 10, "ARP Machine");
 
+  // Draw tempo indicator circle (blinks on quarter notes)
+  if (_arp.x % 4 == 0) {
+    u8g2.drawDisc(102, 6, 3);  // Filled circle when on beat
+  } else {
+    u8g2.drawCircle(102, 6, 3);  // Empty circle when off beat
+  }
+
   // Draw BPM on right side
   char bpm_str[8];
-  snprintf(bpm_str, sizeof(bpm_str), "%d BPM", _arp.getBpm());
+  snprintf(bpm_str, sizeof(bpm_str), "%d", _arp.getBpm());
   uint8_t bpm_width = u8g2.getStrWidth(bpm_str);
   u8g2.drawStr(126 - bpm_width, 10, bpm_str);
 
