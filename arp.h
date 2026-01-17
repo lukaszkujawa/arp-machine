@@ -2,7 +2,10 @@
 #include <Arduino.h>
 #include "midi.h"
 
-enum ScaleId : uint8_t { MAJOR=0, MINOR, DORIAN, PENTA, HARM_MINOR, SCALE_COUNT }; 
+enum ScaleId : uint8_t { MAJOR=0, MINOR, DORIAN, PENTA, HARM_MINOR, SCALE_COUNT };
+
+// Octave range settings: 0=oct3 only, 1=oct2-3, 2=oct3-4, 3=oct2-4
+enum OctaveRange : uint8_t { OCT_3=0, OCT_2_3, OCT_3_4, OCT_2_4, OCT_RANGE_COUNT }; 
 
 static const int8_t SCALE_STEPS[SCALE_COUNT][8] = { 
   /* MAJOR */ 
@@ -26,11 +29,16 @@ class Arp {
     uint8_t root_note;
     uint8_t octave;
     uint8_t density;
+    ScaleId scale;
+    OctaveRange octaveRange;
 
     Arp(Midi& midi);
 
     void tick(unsigned long now);
     void regenerate();
+    void rotateRootNote();
+    void rotateScale();
+    void rotateOctaveRange();
     uint8_t getBpm() const { return _bpm; }
 
 
@@ -43,9 +51,9 @@ class Arp {
     unsigned long _note_delays_ms;
     unsigned long _note_gate_ms;
     uint8_t _bpm;
-    ScaleId _scale;
 
     void _generate_steps();
+    int8_t _randomOctaveOffset();
 
     void _update_bpm(uint8_t bpm);
 

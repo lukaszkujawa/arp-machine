@@ -11,11 +11,21 @@ static const uint8_t HEADER_HEIGHT = 12;
 
 // Grid layout constants
 static const uint8_t STEP_WIDTH = 7;
-static const uint8_t STEP_HEIGHT = 8;
+static const uint8_t STEP_HEIGHT = 6;
 static const uint8_t STEP_GAP = 1;
 static const uint8_t GRID_X_OFFSET = 0;
-static const uint8_t GRID_Y_OFFSET = HEADER_HEIGHT + 9;
+static const uint8_t GRID_HEIGHT = 4 * STEP_HEIGHT + 3 * STEP_GAP;  // 27px
+static const uint8_t GRID_Y_OFFSET = 64 - GRID_HEIGHT;  // Start at bottom
 static const uint8_t STEPS_PER_ROW = 16;
+
+// Note names
+static const char* NOTE_NAMES[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+
+// Scale names
+static const char* SCALE_NAMES[] = {"Major", "Minor", "Dorian", "Penta", "Harm Min"};
+
+// Octave range names
+static const char* OCT_RANGE_NAMES[] = {"3", "2-3", "3-4", "2-4"};
 
 Lcd::Lcd(Arp& arp) : _arp(arp) {
   _last_update = 0;
@@ -53,7 +63,21 @@ void Lcd::refresh(unsigned long now) {
 
   u8g2.setDrawColor(1);
 
-  // Draw 4 rows of 16 steps (64 steps total)
+  // Draw root note, scale, and octave range
+  char info_str[24];
+  snprintf(info_str, sizeof(info_str), "%s %s  Oct%s",
+           NOTE_NAMES[_arp.root_note],
+           SCALE_NAMES[_arp.scale],
+           OCT_RANGE_NAMES[_arp.octaveRange]);
+  u8g2.drawStr(2, 24, info_str);
+
+  // Draw density
+  char density_str[8];
+  snprintf(density_str, sizeof(density_str), "%d%%", _arp.density);
+  uint8_t density_width = u8g2.getStrWidth(density_str);
+  u8g2.drawStr(126 - density_width, 24, density_str);
+
+  // Draw 4 rows of 16 steps (64 steps total) at bottom
   for (uint8_t row = 0; row < 4; row++) {
     for (uint8_t col = 0; col < STEPS_PER_ROW; col++) {
       uint8_t step_index = row * STEPS_PER_ROW + col;
