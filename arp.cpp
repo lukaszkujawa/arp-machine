@@ -109,9 +109,7 @@ void Arp::_update_bpm(uint8_t bpm) {
   _note_gate_ms = _note_delays_ms / 2;
 }
 
-void Arp::tick() {
-  unsigned long now = micros();
-
+void Arp::tick(unsigned long now) {
   if(_note_playing > 0 && (long)(now - _next_note_off) >= 0) {
     _midi.noteOff(_note_playing);
     _note_playing = 0;

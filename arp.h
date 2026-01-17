@@ -28,7 +28,8 @@ class Arp {
 
     Arp(Midi& midi);
 
-    void tick();
+    void tick(unsigned long now);
+    uint8_t getBpm() const { return _bpm; }
 
 
   private:
