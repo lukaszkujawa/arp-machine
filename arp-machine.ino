@@ -9,5 +9,5 @@ void setup() {
 }
 
 void loop() {
-  arp.tick(120);
+  arp.tick();
 }

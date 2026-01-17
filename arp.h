@@ -26,11 +26,21 @@ class Arp {
 
     Arp(Midi midi);
 
-    void tick(uint8_t bpm);
+    void tick();
 
 
   private:
     Midi _midi;
-    long _last;
+    long _next_note_on;
+    long _next_note_off;
+    uint8_t _note_playing;
+
+    long _note_delays_ms;
+    long _note_gate_ms;
+    uint8_t _bpm;
+
+    void _generate_steps();
+
+    void _update_bpm(uint8_t bpm);
 
 };
