@@ -11,6 +11,8 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   scale = MAJOR;  // Default to Major
   octaveRange = OCT_2_3;  // Default to octave 2-3 range
   density = 45;  // Default 45% density
+  editMode = false;  // Start in normal mode
+  editStep = 0;  // Edit cursor at step 0
   randomSeed(RANDOM_REG32);  // Seed from ESP8266 hardware RNG
 
   _update_bpm(120);
@@ -174,4 +176,30 @@ void Arp::tick(unsigned long now) {
     x = (x + 1) % 64;
   }
 
+}
+
+void Arp::toggleEditMode() {
+  editMode = !editMode;
+  if (editMode) {
+    editStep = x;  // Start editing at current playhead position
+  }
+}
+
+void Arp::moveEditCursor(int8_t delta) {
+  int8_t newStep = editStep + delta;
+  if (newStep < 0) newStep = 63;
+  if (newStep > 63) newStep = 0;
+  editStep = newStep;
+}
+
+void Arp::toggleCurrentStep() {
+  if (steps[editStep] > 0) {
+    // Turn step off
+    steps[editStep] = 0;
+  } else {
+    // Turn step on with a random note following scale
+    uint8_t base_note = root_note + (octave * 12);
+    uint8_t scale_degree = random(0, 8);
+    steps[editStep] = base_note + SCALE_STEPS[scale][scale_degree] + _randomOctaveOffset();
+  }
 }

@@ -45,6 +45,13 @@ class Arp {
     uint8_t getBpm() const { return _bpm; }
     bool isPaused() const { return _paused; }
 
+    // Edit mode
+    bool editMode;
+    int8_t editStep;
+    void toggleEditMode();
+    void moveEditCursor(int8_t delta);
+    void toggleCurrentStep();
+
 
   private:
     Midi& _midi;

@@ -30,6 +30,8 @@ static const char* OCT_RANGE_NAMES[] = {"3", "2-3", "3-4", "2-4"};
 Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) {
   _last_update = 0;
   _last_step = -1;
+  _last_edit_step = -1;
+  _last_edit_mode = false;
   _last_selection = SEL_COUNT;  // Invalid to force initial draw
 }
 
@@ -41,12 +43,17 @@ void Lcd::setup() {
 }
 
 void Lcd::refresh(unsigned long now) {
-  // Redraw when step or selection changes
-  if (_arp.x == _last_step && _selection == _last_selection) {
+  // Redraw when step, selection, edit mode, or edit step changes
+  if (_arp.x == _last_step &&
+      _selection == _last_selection &&
+      _arp.editMode == _last_edit_mode &&
+      _arp.editStep == _last_edit_step) {
     return;
   }
   _last_step = _arp.x;
   _last_selection = _selection;
+  _last_edit_mode = _arp.editMode;
+  _last_edit_step = _arp.editStep;
 
   u8g2.clearBuffer();
 
@@ -55,7 +62,11 @@ void Lcd::refresh(unsigned long now) {
 
   // Draw header text (inverted)
   u8g2.setDrawColor(0);
-  u8g2.drawStr(2, 10, "ARP Machine");
+  if (_arp.editMode) {
+    u8g2.drawStr(2, 10, "EDIT SEQUENCE");
+  } else {
+    u8g2.drawStr(2, 10, "ARP Machine");
+  }
 
   // Draw tempo indicator circle (blinks on quarter notes)
   if (_arp.x % 4 == 0) {
@@ -140,8 +151,17 @@ void Lcd::refresh(unsigned long now) {
 
       bool has_note = (_arp.steps[step_index] > 0);
       bool is_current = (step_index == _arp.x);
+      bool is_edit_cursor = (_arp.editMode && step_index == _arp.editStep);
 
-      if (is_current) {
+      if (is_edit_cursor) {
+        // Edit cursor: draw double border frame
+        u8g2.drawFrame(x, y, STEP_WIDTH, STEP_HEIGHT);
+        u8g2.drawFrame(x + 1, y + 1, STEP_WIDTH - 2, STEP_HEIGHT - 2);
+        if (has_note) {
+          // Fill center if has note
+          u8g2.drawBox(x + 2, y + 2, STEP_WIDTH - 4, STEP_HEIGHT - 4);
+        }
+      } else if (is_current) {
         // Current step: draw filled box with inverted inner if has note
         u8g2.drawBox(x, y, STEP_WIDTH, STEP_HEIGHT);
         if (has_note) {

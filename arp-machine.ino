@@ -13,6 +13,7 @@ Lcd lcd(arp, currentSelection);
 // Rotary encoder pins
 const uint8_t ENC_CLK = 2;
 const uint8_t ENC_DT = 16;
+const uint8_t ENC_BTN = 0;
 
 // Button pins
 const uint8_t BTN_PAUSE = 12;     // Pause/resume ARP
@@ -30,6 +31,10 @@ uint32_t lastEncoderMs = 0;
 // Button state
 volatile uint32_t lastIsrMs[3] = {0, 0, 0};
 volatile uint8_t pendingMask = 0;
+
+// Encoder button polling state
+uint8_t lastEncBtn = HIGH;
+uint32_t lastEncBtnMs = 0;
 
 void IRAM_ATTR isrRegen() {
   uint32_t now = millis();
@@ -65,17 +70,41 @@ void handleEncoder() {
   // Only act on falling edge
   if (clk == LOW) {
     int8_t delta = (digitalRead(ENC_DT) == HIGH) ? 1 : -1;
+
     switch (currentSelection) {
       case SEL_BPM:     arp.adjustBpm(delta * 5); break;
       case SEL_ROOT:    arp.adjustRootNote(delta); break;
       case SEL_SCALE:   arp.adjustScale(delta); break;
       case SEL_OCTAVE:  arp.adjustOctaveRange(delta); break;
       case SEL_DENSITY: arp.adjustDensity(delta); break;
+      case SEL_EDIT:    arp.moveEditCursor(delta); break;
       default: break;
     }
     lastEncoderMs = now;
   }
   lastClk = clk;
+}
+
+void handleEncButton() {
+  uint8_t btn = digitalRead(ENC_BTN);
+  if (btn == lastEncBtn) return;
+
+  uint32_t now = millis();
+  if (now - lastEncBtnMs < BTN_DEBOUNCE_MS) {
+    lastEncBtn = btn;
+    return;
+  }
+
+  // Act on falling edge (button press)
+  if (btn == LOW) {
+    if (currentSelection == SEL_EDIT) {
+      // Toggle step on/off in edit mode
+      arp.toggleCurrentStep();
+    }
+  }
+
+  lastEncBtn = btn;
+  lastEncBtnMs = now;
 }
 
 void handleButtons() {
@@ -92,7 +121,13 @@ void handleButtons() {
   }
   if (mask & 0x04) {
     pendingMask &= ~0x04;
+    // Cycle through menu selections (including edit mode)
     currentSelection = (MenuSelection)((currentSelection + 1) % SEL_COUNT);
+    // Sync edit mode state with selection
+    arp.editMode = (currentSelection == SEL_EDIT);
+    if (arp.editMode) {
+      arp.editStep = arp.x;  // Start at current playhead
+    }
   }
 }
 
@@ -108,6 +143,7 @@ void setup() {
   // Encoder pins
   pinMode(ENC_CLK, INPUT_PULLUP);
   pinMode(ENC_DT, INPUT_PULLUP);
+  pinMode(ENC_BTN, INPUT_PULLUP);
   lastClk = digitalRead(ENC_CLK);
 
   // Button pins
@@ -123,6 +159,7 @@ void setup() {
 void loop() {
   unsigned long now = micros();
   handleEncoder();
+  handleEncButton();
   handleButtons();
   arp.tick(now);
   lcd.refresh(now);
