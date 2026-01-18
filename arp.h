@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include "midi.h"
+#include "step_generator.h"
 
 enum ScaleId : uint8_t { MAJOR=0, MINOR, DORIAN, PENTA, HARM_MINOR, SCALE_COUNT };
 
@@ -31,6 +32,7 @@ class Arp {
     uint8_t density;
     ScaleId scale;
     OctaveRange octaveRange;
+    GeneratorId generator;
 
     Arp(Midi& midi);
 
@@ -42,6 +44,7 @@ class Arp {
     void adjustScale(int8_t delta);
     void adjustOctaveRange(int8_t delta);
     void adjustDensity(int8_t delta);
+    void adjustGenerator(int8_t delta);
     uint8_t getBpm() const { return _bpm; }
     bool isPaused() const { return _paused; }
 
@@ -64,7 +67,6 @@ class Arp {
     unsigned long _note_gate_ms;
     uint8_t _bpm;
 
-    void _generate_steps();
     int8_t _randomOctaveOffset();
 
     void _update_bpm(uint8_t bpm);

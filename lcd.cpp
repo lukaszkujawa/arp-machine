@@ -65,7 +65,7 @@ void Lcd::refresh(unsigned long now) {
   if (_arp.editMode) {
     u8g2.drawStr(2, 10, "EDIT SEQUENCE");
   } else {
-    u8g2.drawStr(2, 10, "ARP Machine");
+    u8g2.drawStr(2, 10, "arpM");
   }
 
   // Draw tempo indicator circle (blinks on quarter notes)
