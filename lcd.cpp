@@ -10,10 +10,11 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 static const uint8_t HEADER_HEIGHT = 12;
 
 // Grid layout constants
-static const uint8_t STEP_WIDTH = 7;
+static const uint8_t STEP_WIDTH = 6;
 static const uint8_t STEP_HEIGHT = 6;
 static const uint8_t STEP_GAP = 1;
-static const uint8_t GRID_X_OFFSET = 0;
+static const uint8_t BEAT_GAP = 2;  // Extra gap between quarter notes
+static const uint8_t GRID_X_OFFSET = 5;  // Center the 118px grid on 128px screen
 static const uint8_t GRID_HEIGHT = 4 * STEP_HEIGHT + 3 * STEP_GAP;  // 27px
 static const uint8_t GRID_Y_OFFSET = 64 - GRID_HEIGHT;  // Start at bottom
 static const uint8_t STEPS_PER_ROW = 16;
@@ -163,7 +164,9 @@ void Lcd::refresh(unsigned long now) {
     for (uint8_t col = 0; col < STEPS_PER_ROW; col++) {
       uint8_t step_index = row * STEPS_PER_ROW + col;
 
-      uint8_t x = GRID_X_OFFSET + col * (STEP_WIDTH + STEP_GAP);
+      // Add extra gap after every 4 steps for beat grouping
+      uint8_t beat_gap = (col / 4) * BEAT_GAP;
+      uint8_t x = GRID_X_OFFSET + col * (STEP_WIDTH + STEP_GAP) + beat_gap;
       uint8_t y = GRID_Y_OFFSET + row * (STEP_HEIGHT + STEP_GAP);
 
       bool has_note = (_arp.steps[step_index] > 0);
