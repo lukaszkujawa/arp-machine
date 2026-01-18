@@ -101,10 +101,10 @@ void Lcd::refresh(unsigned long now) {
   snprintf(buf, sizeof(buf), "%s", NOTE_NAMES[_arp.root_note]);
   if (_selection == SEL_ROOT) {
     uint8_t w = u8g2.getStrWidth(buf);
-    u8g2.drawBox(xPos - 1, 14, w + 2, 12);
+    u8g2.drawBox(xPos - 1, 17, w + 2, 12);
     u8g2.setDrawColor(0);
   }
-  u8g2.drawStr(xPos, 24, buf);
+  u8g2.drawStr(xPos, 27, buf);
   u8g2.setDrawColor(1);
   xPos += u8g2.getStrWidth(buf) + 4;
 
@@ -112,10 +112,10 @@ void Lcd::refresh(unsigned long now) {
   snprintf(buf, sizeof(buf), "%s", SCALE_NAMES[_arp.scale]);
   if (_selection == SEL_SCALE) {
     uint8_t w = u8g2.getStrWidth(buf);
-    u8g2.drawBox(xPos - 1, 14, w + 2, 12);
+    u8g2.drawBox(xPos - 1, 17, w + 2, 12);
     u8g2.setDrawColor(0);
   }
-  u8g2.drawStr(xPos, 24, buf);
+  u8g2.drawStr(xPos, 27, buf);
   u8g2.setDrawColor(1);
   xPos += u8g2.getStrWidth(buf) + 4;
 
@@ -123,10 +123,10 @@ void Lcd::refresh(unsigned long now) {
   snprintf(buf, sizeof(buf), "Oct%s", OCT_RANGE_NAMES[_arp.octaveRange]);
   if (_selection == SEL_OCTAVE) {
     uint8_t w = u8g2.getStrWidth(buf);
-    u8g2.drawBox(xPos - 1, 14, w + 2, 12);
+    u8g2.drawBox(xPos - 1, 17, w + 2, 12);
     u8g2.setDrawColor(0);
   }
-  u8g2.drawStr(xPos, 24, buf);
+  u8g2.drawStr(xPos, 27, buf);
   u8g2.setDrawColor(1);
 
   // Draw density on the right
@@ -135,10 +135,10 @@ void Lcd::refresh(unsigned long now) {
   uint8_t density_width = u8g2.getStrWidth(density_str);
   uint8_t density_x = 126 - density_width;
   if (_selection == SEL_DENSITY) {
-    u8g2.drawBox(density_x - 1, 14, density_width + 2, 12);
+    u8g2.drawBox(density_x - 1, 17, density_width + 2, 12);
     u8g2.setDrawColor(0);
   }
-  u8g2.drawStr(density_x, 24, density_str);
+  u8g2.drawStr(density_x, 27, density_str);
   u8g2.setDrawColor(1);
 
   // Draw 4 rows of 16 steps (64 steps total) at bottom
@@ -154,12 +154,16 @@ void Lcd::refresh(unsigned long now) {
       bool is_edit_cursor = (_arp.editMode && step_index == _arp.editStep);
 
       if (is_edit_cursor) {
-        // Edit cursor: draw double border frame
-        u8g2.drawFrame(x, y, STEP_WIDTH, STEP_HEIGHT);
-        u8g2.drawFrame(x + 1, y + 1, STEP_WIDTH - 2, STEP_HEIGHT - 2);
         if (has_note) {
-          // Fill center if has note
-          u8g2.drawBox(x + 2, y + 2, STEP_WIDTH - 4, STEP_HEIGHT - 4);
+          // Edit cursor over note: filled box with black inner frame
+          u8g2.drawBox(x, y, STEP_WIDTH, STEP_HEIGHT);
+          u8g2.setDrawColor(0);
+          u8g2.drawFrame(x + 2, y + 2, STEP_WIDTH - 4, STEP_HEIGHT - 4);
+          u8g2.setDrawColor(1);
+        } else {
+          // Edit cursor over empty: double border frame
+          u8g2.drawFrame(x, y, STEP_WIDTH, STEP_HEIGHT);
+          u8g2.drawFrame(x + 1, y + 1, STEP_WIDTH - 2, STEP_HEIGHT - 2);
         }
       } else if (is_current) {
         // Current step: draw filled box with inverted inner if has note
