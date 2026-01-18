@@ -16,7 +16,7 @@ static const uint8_t STEP_GAP = 1;
 static const uint8_t BEAT_GAP = 2;  // Extra gap between quarter notes
 static const uint8_t GRID_X_OFFSET = 5;  // Center the 118px grid on 128px screen
 static const uint8_t GRID_HEIGHT = 4 * STEP_HEIGHT + 3 * STEP_GAP;  // 27px
-static const uint8_t GRID_Y_OFFSET = 64 - GRID_HEIGHT;  // Start at bottom
+static const uint8_t GRID_Y_OFFSET = 61 - GRID_HEIGHT;  // Start at bottom
 static const uint8_t STEPS_PER_ROW = 16;
 
 // Note names
@@ -66,10 +66,12 @@ void Lcd::refresh(unsigned long now) {
 
   // Draw header text (inverted)
   u8g2.setDrawColor(0);
+  u8g2.drawStr(2, 10, "arpM");
+
   if (_arp.editMode) {
-    u8g2.drawStr(2, 10, "EDIT SEQUENCE");
-  } else {
-    u8g2.drawStr(2, 10, "arpM");
+    u8g2.setDrawColor(1);
+    u8g2.drawFrame( 0, 30, 127, 34 );
+    u8g2.setDrawColor(0);
   }
 
   // Draw tempo indicator circle (blinks on quarter notes)
@@ -98,8 +100,9 @@ void Lcd::refresh(unsigned long now) {
   // Draw generator before BPM (highlight if selected)
   const char* gen_str = GEN_NAMES[_arp.generator];
   uint8_t gen_width = u8g2.getStrWidth(gen_str);
-  uint8_t gen_x = bpm_x - gen_width - 6;
+  uint8_t gen_x = bpm_x - gen_width - 14;
 
+  u8g2.setDrawColor(0);
   if (_selection == SEL_GENERATOR) {
     u8g2.setDrawColor(0);
     u8g2.drawBox(gen_x - 2, 1, gen_width + 4, 10);
