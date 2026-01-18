@@ -40,5 +40,8 @@ class Lcd {
     uint8_t _last_scale;
     uint8_t _last_octave_range;
     uint8_t _last_density;
+    int8_t _last_edit_note;
+    int8_t _last_edit_mod;
+    uint8_t _last_edit_submode;
 
 };

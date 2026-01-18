@@ -31,6 +31,23 @@ static const char* OCT_RANGE_NAMES[] = {"3", "2-3", "3-4", "2-4"};
 // Generator names (short form for header)
 static const char* GEN_NAMES[] = {"D", "C"};
 
+// Convert MIDI note to string (e.g., 60 -> "C4", 61 -> "C#4")
+static void midiNoteToString(int8_t note, char* buf, size_t bufSize) {
+  if (note <= 0) {
+    snprintf(buf, bufSize, "---");
+    return;
+  }
+  uint8_t octave = (note / 12) - 1;
+  uint8_t noteInOctave = note % 12;
+  snprintf(buf, bufSize, "%s%d", NOTE_NAMES[noteInOctave], octave);
+}
+
+// Convert step mod to mode character
+static char modToChar(int8_t mod) {
+  // Currently only normal mode (0)
+  return 'N';
+}
+
 Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) {
   // Initialize all cached state to invalid/different values to force initial draw
   _last_step = 255;
@@ -44,6 +61,9 @@ Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) 
   _last_scale = 255;
   _last_octave_range = 255;
   _last_density = 0;
+  _last_edit_note = -128;
+  _last_edit_mod = -128;
+  _last_edit_submode = 255;
 }
 
 void Lcd::setup() {
@@ -54,6 +74,11 @@ void Lcd::setup() {
 }
 
 void Lcd::refresh(unsigned long now) {
+  // Get current edit step values for comparison
+  int8_t current_edit_note = _arp.editMode ? _arp.steps[_arp.editStep] : 0;
+  int8_t current_edit_mod = _arp.editMode ? _arp.steps_mods[_arp.editStep] : 0;
+  uint8_t current_edit_submode = _arp.editMode ? _arp.editSubMode : 0;
+
   // Redraw when any displayed state changes
   if (_arp.x == _last_step &&
       _selection == _last_selection &&
@@ -65,7 +90,10 @@ void Lcd::refresh(unsigned long now) {
       _arp.root_note == _last_root_note &&
       _arp.scale == _last_scale &&
       _arp.octaveRange == _last_octave_range &&
-      _arp.density == _last_density) {
+      _arp.density == _last_density &&
+      current_edit_note == _last_edit_note &&
+      current_edit_mod == _last_edit_mod &&
+      current_edit_submode == _last_edit_submode) {
     return;
   }
   _last_step = _arp.x;
@@ -79,6 +107,9 @@ void Lcd::refresh(unsigned long now) {
   _last_scale = _arp.scale;
   _last_octave_range = _arp.octaveRange;
   _last_density = _arp.density;
+  _last_edit_note = current_edit_note;
+  _last_edit_mod = current_edit_mod;
+  _last_edit_submode = current_edit_submode;
 
   u8g2.clearBuffer();
 
@@ -149,53 +180,83 @@ void Lcd::refresh(unsigned long now) {
 
   u8g2.setDrawColor(1);
 
-  // Draw settings row with highlighting for selected item
-  uint8_t xPos = 2;
-  char buf[12];
+  // Draw settings row OR edit info box
+  if (_arp.editMode) {
+    // Draw edit info box (covers settings row area)
+    char note_buf[6];
+    midiNoteToString(_arp.steps[_arp.editStep], note_buf, sizeof(note_buf));
+    char mode_char = modToChar(_arp.steps_mods[_arp.editStep]);
 
-  // Root note
-  snprintf(buf, sizeof(buf), "%s", NOTE_NAMES[_arp.root_note]);
-  if (_selection == SEL_ROOT) {
-    uint8_t w = u8g2.getStrWidth(buf);
-    u8g2.drawBox(xPos - 1, 17, w + 2, 12);
-    u8g2.setDrawColor(0);
-  }
-  u8g2.drawStr(xPos, 27, buf);
-  u8g2.setDrawColor(1);
-  xPos += u8g2.getStrWidth(buf) + 4;
+    // Draw box background
+    u8g2.drawFrame(0, 17, 127, 13);
 
-  // Scale
-  snprintf(buf, sizeof(buf), "%s", SCALE_NAMES[_arp.scale]);
-  if (_selection == SEL_SCALE) {
-    uint8_t w = u8g2.getStrWidth(buf);
-    u8g2.drawBox(xPos - 1, 17, w + 2, 12);
-    u8g2.setDrawColor(0);
-  }
-  u8g2.drawStr(xPos, 27, buf);
-  u8g2.setDrawColor(1);
-  xPos += u8g2.getStrWidth(buf) + 4;
+    // Draw note label and value (highlight if EDIT_NOTE sub-mode)
+    if (_arp.editSubMode == EDIT_NOTE) {
+      u8g2.drawBox(4, 17, 56, 12);
+      u8g2.setDrawColor(0);
+    }
+    u8g2.drawStr(6, 27, "Note:");
+    u8g2.drawStr(42, 27, note_buf);
+    u8g2.setDrawColor(1);
 
-  // Octave range
-  snprintf(buf, sizeof(buf), "Oct%s", OCT_RANGE_NAMES[_arp.octaveRange]);
-  if (_selection == SEL_OCTAVE) {
-    uint8_t w = u8g2.getStrWidth(buf);
-    u8g2.drawBox(xPos - 1, 17, w + 2, 12);
-    u8g2.setDrawColor(0);
-  }
-  u8g2.drawStr(xPos, 27, buf);
-  u8g2.setDrawColor(1);
+    // Draw mode label and value (highlight if EDIT_MODE sub-mode)
+    if (_arp.editSubMode == EDIT_MODE) {
+      u8g2.drawBox(64, 17, 60, 12);
+      u8g2.setDrawColor(0);
+    }
+    u8g2.drawStr(68, 27, "Mode:");
+    char mode_str[2] = {mode_char, '\0'};
+    u8g2.drawStr(104, 27, mode_str);
+    u8g2.setDrawColor(1);
+  } else {
+    // Draw normal settings row with highlighting for selected item
+    uint8_t xPos = 2;
+    char buf[12];
 
-  // Draw density on the right
-  char density_str[8];
-  snprintf(density_str, sizeof(density_str), "%d%%", _arp.density);
-  uint8_t density_width = u8g2.getStrWidth(density_str);
-  uint8_t density_x = 126 - density_width;
-  if (_selection == SEL_DENSITY) {
-    u8g2.drawBox(density_x - 1, 17, density_width + 2, 12);
-    u8g2.setDrawColor(0);
+    // Root note
+    snprintf(buf, sizeof(buf), "%s", NOTE_NAMES[_arp.root_note]);
+    if (_selection == SEL_ROOT) {
+      uint8_t w = u8g2.getStrWidth(buf);
+      u8g2.drawBox(xPos - 1, 17, w + 2, 12);
+      u8g2.setDrawColor(0);
+    }
+    u8g2.drawStr(xPos, 27, buf);
+    u8g2.setDrawColor(1);
+    xPos += u8g2.getStrWidth(buf) + 4;
+
+    // Scale
+    snprintf(buf, sizeof(buf), "%s", SCALE_NAMES[_arp.scale]);
+    if (_selection == SEL_SCALE) {
+      uint8_t w = u8g2.getStrWidth(buf);
+      u8g2.drawBox(xPos - 1, 17, w + 2, 12);
+      u8g2.setDrawColor(0);
+    }
+    u8g2.drawStr(xPos, 27, buf);
+    u8g2.setDrawColor(1);
+    xPos += u8g2.getStrWidth(buf) + 4;
+
+    // Octave range
+    snprintf(buf, sizeof(buf), "Oct%s", OCT_RANGE_NAMES[_arp.octaveRange]);
+    if (_selection == SEL_OCTAVE) {
+      uint8_t w = u8g2.getStrWidth(buf);
+      u8g2.drawBox(xPos - 1, 17, w + 2, 12);
+      u8g2.setDrawColor(0);
+    }
+    u8g2.drawStr(xPos, 27, buf);
+    u8g2.setDrawColor(1);
+
+    // Draw density on the right
+    char density_str[8];
+    snprintf(density_str, sizeof(density_str), "%d%%", _arp.density);
+    uint8_t density_width = u8g2.getStrWidth(density_str);
+    uint8_t density_x = 126 - density_width;
+    if (_selection == SEL_DENSITY) {
+      u8g2.drawBox(density_x - 1, 17, density_width + 2, 12);
+      u8g2.setDrawColor(0);
+    }
+    u8g2.drawStr(density_x, 27, density_str);
+    u8g2.setDrawColor(1);
   }
-  u8g2.drawStr(density_x, 27, density_str);
-  u8g2.setDrawColor(1);
 
   // Draw 4 rows of 16 steps (64 steps total) at bottom
   for (uint8_t row = 0; row < 4; row++) {

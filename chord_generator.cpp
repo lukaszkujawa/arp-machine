@@ -24,14 +24,16 @@ static int8_t randomOctaveOffset(OctaveRange octaveRange) {
 
 void generateChord(const GeneratorParams& params) {
   int8_t* steps = params.steps;
+  int8_t* steps_mods = params.steps_mods;
   uint8_t base_note = params.rootNote + (params.octave * 12);
   ScaleId scale = params.scale;
   OctaveRange octaveRange = params.octaveRange;
   const int8_t (*scaleSteps)[8] = params.scaleSteps;
 
-  // Clear all steps first
+  // Clear all steps and initialize modifiers to 0 (normal)
   for (uint8_t i = 0; i < 64; i++) {
     steps[i] = 0;
+    steps_mods[i] = 0;
   }
 
   // Select random chord root (scale degree 0-6 for I, ii, iii, IV, V, vi, vii)

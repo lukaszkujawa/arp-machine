@@ -79,7 +79,13 @@ void handleEncoder() {
       case SEL_SCALE:     arp.adjustScale(delta); break;
       case SEL_OCTAVE:    arp.adjustOctaveRange(delta); break;
       case SEL_DENSITY:   arp.adjustDensity(delta); break;
-      case SEL_EDIT:      arp.moveEditCursor(delta); break;
+      case SEL_EDIT:
+        switch (arp.editSubMode) {
+          case EDIT_SEQUENCE: arp.moveEditCursor(delta); break;
+          case EDIT_NOTE:     arp.adjustCurrentStepNote(delta); break;
+          case EDIT_MODE:     break;  // Currently does nothing
+        }
+        break;
       default: break;
     }
     lastEncoderMs = now;
@@ -115,7 +121,12 @@ void handleButtons() {
 
   if (mask & 0x01) {
     pendingMask &= ~0x01;
-    arp.regenerate();
+    if (arp.editMode) {
+      // In edit mode, cycle through sub-modes (sequence -> note -> mode -> sequence)
+      arp.cycleEditSubMode();
+    } else {
+      arp.regenerate();
+    }
   }
   if (mask & 0x02) {
     pendingMask &= ~0x02;
@@ -128,7 +139,8 @@ void handleButtons() {
     // Sync edit mode state with selection
     arp.editMode = (currentSelection == SEL_EDIT);
     if (arp.editMode) {
-      arp.editStep = arp.x;  // Start at current playhead
+      arp.editStep = 0;  // Start at step 0
+      arp.editSubMode = EDIT_SEQUENCE;  // Reset to sequence navigation
     }
   }
 }

@@ -15,6 +15,7 @@ enum GeneratorId : uint8_t {
 // Parameters passed to step generators
 struct GeneratorParams {
   int8_t* steps;           // Pointer to 64-step buffer to fill
+  int8_t* steps_mods;      // Pointer to 64-step modifiers buffer (0=normal)
   uint8_t stepCount;       // Number of steps (64)
   uint8_t rootNote;        // Root note (0-11)
   uint8_t octave;          // Base octave

@@ -6,7 +6,10 @@
 enum ScaleId : uint8_t { MAJOR=0, MINOR, DORIAN, PENTA, HARM_MINOR, SCALE_COUNT };
 
 // Octave range settings: 0=oct3 only, 1=oct2-3, 2=oct3-4, 3=oct2-4
-enum OctaveRange : uint8_t { OCT_3=0, OCT_2_3, OCT_3_4, OCT_2_4, OCT_RANGE_COUNT }; 
+enum OctaveRange : uint8_t { OCT_3=0, OCT_2_3, OCT_3_4, OCT_2_4, OCT_RANGE_COUNT };
+
+// Edit sub-modes: what the encoder controls in edit mode
+enum EditSubMode : uint8_t { EDIT_SEQUENCE=0, EDIT_NOTE, EDIT_MODE, EDIT_SUBMODE_COUNT }; 
 
 static const int8_t SCALE_STEPS[SCALE_COUNT][8] = { 
   /* MAJOR */ 
@@ -26,6 +29,8 @@ class Arp {
   public:
 
     int8_t steps[64];
+    int8_t steps_mods[64];
+    
     uint8_t x = 0;
     uint8_t root_note;
     uint8_t octave;
@@ -53,9 +58,12 @@ class Arp {
     // Edit mode
     bool editMode;
     uint8_t editStep;
+    EditSubMode editSubMode;
     void toggleEditMode();
     void moveEditCursor(int8_t delta);
     void toggleCurrentStep();
+    void cycleEditSubMode();
+    void adjustCurrentStepNote(int8_t delta);
 
 
   private:
