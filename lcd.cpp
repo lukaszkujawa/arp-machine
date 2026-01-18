@@ -32,11 +32,18 @@ static const char* OCT_RANGE_NAMES[] = {"3", "2-3", "3-4", "2-4"};
 static const char* GEN_NAMES[] = {"D", "C"};
 
 Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) {
-  _last_update = 0;
-  _last_step = -1;
-  _last_edit_step = -1;
+  // Initialize all cached state to invalid/different values to force initial draw
+  _last_step = 255;
+  _last_edit_step = 255;
   _last_edit_mode = false;
-  _last_selection = SEL_COUNT;  // Invalid to force initial draw
+  _last_selection = SEL_COUNT;
+  _last_length = 0;
+  _last_generator = 255;
+  _last_bpm = 0;
+  _last_root_note = 255;
+  _last_scale = 255;
+  _last_octave_range = 255;
+  _last_density = 0;
 }
 
 void Lcd::setup() {
@@ -47,17 +54,31 @@ void Lcd::setup() {
 }
 
 void Lcd::refresh(unsigned long now) {
-  // Redraw when step, selection, edit mode, or edit step changes
+  // Redraw when any displayed state changes
   if (_arp.x == _last_step &&
       _selection == _last_selection &&
       _arp.editMode == _last_edit_mode &&
-      _arp.editStep == _last_edit_step) {
+      _arp.editStep == _last_edit_step &&
+      _arp.length == _last_length &&
+      _arp.generator == _last_generator &&
+      _arp.getBpm() == _last_bpm &&
+      _arp.root_note == _last_root_note &&
+      _arp.scale == _last_scale &&
+      _arp.octaveRange == _last_octave_range &&
+      _arp.density == _last_density) {
     return;
   }
   _last_step = _arp.x;
   _last_selection = _selection;
   _last_edit_mode = _arp.editMode;
   _last_edit_step = _arp.editStep;
+  _last_length = _arp.length;
+  _last_generator = _arp.generator;
+  _last_bpm = _arp.getBpm();
+  _last_root_note = _arp.root_note;
+  _last_scale = _arp.scale;
+  _last_octave_range = _arp.octaveRange;
+  _last_density = _arp.density;
 
   u8g2.clearBuffer();
 

@@ -27,10 +27,18 @@ class Lcd {
   private:
     Arp& _arp;
     MenuSelection& _selection;
-    unsigned long _last_update;
-    int8_t _last_step;
-    int8_t _last_edit_step;
+
+    // Cached state for change detection
+    uint8_t _last_step;
+    uint8_t _last_edit_step;
     bool _last_edit_mode;
     MenuSelection _last_selection;
+    uint8_t _last_length;
+    uint8_t _last_generator;
+    uint8_t _last_bpm;
+    uint8_t _last_root_note;
+    uint8_t _last_scale;
+    uint8_t _last_octave_range;
+    uint8_t _last_density;
 
 };

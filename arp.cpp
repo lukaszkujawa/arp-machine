@@ -100,12 +100,13 @@ void Arp::adjustGenerator(int8_t delta) {
 }
 
 void Arp::adjustLength(int8_t delta) {
-  int8_t newLen = length + delta;
+  int16_t newLen = length + delta;
   if (newLen < 1) newLen = 1;
   if (newLen > 64) newLen = 64;
   length = (uint8_t)newLen;
-  // Ensure playhead is within bounds
+  // Ensure playhead and edit cursor are within bounds
   if (x >= length) x = 0;
+  if (editStep >= length) editStep = length - 1;
 }
 
 void Arp::_update_bpm(uint8_t bpm) {
@@ -145,10 +146,10 @@ void Arp::toggleEditMode() {
 }
 
 void Arp::moveEditCursor(int8_t delta) {
-  int8_t newStep = editStep + delta;
-  if (newStep < 0) newStep = 63;
-  if (newStep > 63) newStep = 0;
-  editStep = newStep;
+  int16_t newStep = (int16_t)editStep + delta;
+  if (newStep < 0) newStep = length - 1;
+  if (newStep >= length) newStep = 0;
+  editStep = (uint8_t)newStep;
 }
 
 void Arp::toggleCurrentStep() {

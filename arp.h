@@ -26,7 +26,7 @@ class Arp {
   public:
 
     int8_t steps[64];
-    int8_t x = 0;
+    uint8_t x = 0;
     uint8_t root_note;
     uint8_t octave;
     uint8_t density;
@@ -52,7 +52,7 @@ class Arp {
 
     // Edit mode
     bool editMode;
-    int8_t editStep;
+    uint8_t editStep;
     void toggleEditMode();
     void moveEditCursor(int8_t delta);
     void toggleCurrentStep();
