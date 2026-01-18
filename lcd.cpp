@@ -42,10 +42,13 @@ static void midiNoteToString(int8_t note, char* buf, size_t bufSize) {
   snprintf(buf, bufSize, "%s%d", NOTE_NAMES[noteInOctave], octave);
 }
 
-// Convert step mod to mode character
-static char modToChar(int8_t mod) {
-  // Currently only normal mode (0)
-  return 'N';
+// Step mod names
+static const char* MOD_NAMES[] = {"N", "R2", "R3", "1:2"};
+
+// Convert step mod to mode string
+static const char* modToString(int8_t mod) {
+  if (mod < 0 || mod >= STEP_MOD_COUNT) return "N";
+  return MOD_NAMES[mod];
 }
 
 Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) {
@@ -185,7 +188,7 @@ void Lcd::refresh(unsigned long now) {
     // Draw edit info box (covers settings row area)
     char note_buf[6];
     midiNoteToString(_arp.steps[_arp.editStep], note_buf, sizeof(note_buf));
-    char mode_char = modToChar(_arp.steps_mods[_arp.editStep]);
+    const char* mode_str = modToString(_arp.steps_mods[_arp.editStep]);
 
     // Draw box background
     u8g2.drawFrame(0, 17, 127, 13);
@@ -205,7 +208,6 @@ void Lcd::refresh(unsigned long now) {
       u8g2.setDrawColor(0);
     }
     u8g2.drawStr(68, 27, "Mode:");
-    char mode_str[2] = {mode_char, '\0'};
     u8g2.drawStr(104, 27, mode_str);
     u8g2.setDrawColor(1);
   } else {

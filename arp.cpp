@@ -7,6 +7,16 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   _note_playing = 0;
   _paused = false;
 
+  // Ratchet state
+  _ratchet_count = 0;
+  _ratchet_gate = 0;
+  _ratchet_interval = 0;
+  _next_ratchet_on = 0;
+  _ratchet_note = 0;
+
+  // 1:2 mod state - all steps start as "play" (1)
+  _half_trigger_state = 0xFFFFFFFFFFFFFFFFULL;
+
   octave = 4;  // Default octave (C4 = MIDI 48)
   root_note = 0;  // Default to C
   scale = MAJOR;  // Default to Major
@@ -118,20 +128,72 @@ void Arp::_update_bpm(uint8_t bpm) {
 }
 
 void Arp::tick(unsigned long now) {
+  // Handle note off
   if(_note_playing > 0 && (long)(now - _next_note_off) >= 0) {
     _midi.noteOff(_note_playing);
     _note_playing = 0;
   }
 
+  // Handle ratchet note on (separate from main step timing)
+  if (_ratchet_count > 0 && _note_playing == 0 && (long)(now - _next_ratchet_on) >= 0) {
+    _ratchet_count--;
+    _note_playing = _ratchet_note;
+    _midi.noteOn(_note_playing, 100);
+    _next_note_off = now + _ratchet_gate;
+    _next_ratchet_on = now + _ratchet_interval;
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  }
+
   if (_paused) return;
 
-  if(_note_playing == 0 && (long)(now - _next_note_on) >= 0) {
-    _note_playing = steps[x];
+  if(_note_playing == 0 && _ratchet_count == 0 && (long)(now - _next_note_on) >= 0) {
+    uint8_t note = steps[x];
+    int8_t mod = steps_mods[x];
 
-    if(_note_playing > 0) {
+    bool should_play = true;
+
+    // Handle 1:2 mod - check if we should play this time
+    if (mod == MOD_HALF && note > 0) {
+      uint64_t step_bit = 1ULL << x;
+      if (_half_trigger_state & step_bit) {
+        should_play = true;
+        _half_trigger_state &= ~step_bit;  // Next time skip
+      } else {
+        should_play = false;
+        _half_trigger_state |= step_bit;   // Next time play
+      }
+    }
+
+    if (note > 0 && should_play) {
+      _note_playing = note;
       digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));  // Toggle LED on each note
+
+      // Set up gate time and ratchet based on mod
+      unsigned long gate = _note_gate_ms;
+      _ratchet_count = 0;
+
+      if (mod == MOD_RATCHET2) {
+        // 2 hits: divide 1/16 step into 2x 1/32 notes
+        // Gate = 50% of 1/32 = 1/64 note duration
+        _ratchet_interval = _note_delays_ms / 2;
+        _ratchet_gate = _ratchet_interval / 2;
+        gate = _ratchet_gate;
+        _ratchet_count = 1;
+        _ratchet_note = note;
+        _next_ratchet_on = now + _ratchet_interval;
+      } else if (mod == MOD_RATCHET3) {
+        // 3 hits: divide 1/16 step into 3 equal sub-notes
+        // Gate = 50% of each sub-note duration
+        _ratchet_interval = _note_delays_ms / 3;
+        _ratchet_gate = _ratchet_interval / 2;
+        gate = _ratchet_gate;
+        _ratchet_count = 2;
+        _ratchet_note = note;
+        _next_ratchet_on = now + _ratchet_interval;
+      }
+
       _midi.noteOn(_note_playing, 100);
-      _next_note_off = now + _note_gate_ms;
+      _next_note_off = now + gate;
     }
 
     _next_note_on = now + _note_delays_ms;
@@ -233,4 +295,17 @@ void Arp::adjustCurrentStepNote(int8_t delta) {
   if (newNote > maxNote) newNote = maxNote;
 
   steps[editStep] = newNote;
+}
+
+void Arp::adjustCurrentStepMod(int8_t delta) {
+  // Only adjust if step has a note
+  if (steps[editStep] <= 0) return;
+
+  int8_t newMod = steps_mods[editStep] + delta;
+
+  // Wrap around
+  if (newMod < 0) newMod = STEP_MOD_COUNT - 1;
+  if (newMod >= STEP_MOD_COUNT) newMod = 0;
+
+  steps_mods[editStep] = newMod;
 }
