@@ -1,4 +1,5 @@
 #include "default_generator.h"
+#include "chord_generator.h"
 #include "arp.h"
 
 static int8_t randomOctaveOffset(OctaveRange octaveRange) {
@@ -91,6 +92,8 @@ void generateDefault(const GeneratorParams& params) {
 // Generator registry
 StepGeneratorFn getGenerator(GeneratorId id) {
   switch (id) {
+    case GEN_CHORD:
+      return generateChord;
     case GEN_DEFAULT:
     default:
       return generateDefault;

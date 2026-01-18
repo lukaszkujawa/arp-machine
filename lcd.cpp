@@ -27,6 +27,9 @@ static const char* SCALE_NAMES[] = {"Major", "Minor", "Dorian", "Penta", "Harm M
 // Octave range names
 static const char* OCT_RANGE_NAMES[] = {"3", "2-3", "3-4", "2-4"};
 
+// Generator names (short form for header)
+static const char* GEN_NAMES[] = {"D", "C"};
+
 Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) {
   _last_update = 0;
   _last_step = -1;
@@ -89,6 +92,20 @@ void Lcd::refresh(unsigned long now) {
     u8g2.drawStr(bpm_x, 10, bpm_str);
   } else {
     u8g2.drawStr(bpm_x, 10, bpm_str);
+  }
+
+  // Draw generator before BPM (highlight if selected)
+  const char* gen_str = GEN_NAMES[_arp.generator];
+  uint8_t gen_width = u8g2.getStrWidth(gen_str);
+  uint8_t gen_x = bpm_x - gen_width - 6;
+
+  if (_selection == SEL_GENERATOR) {
+    u8g2.setDrawColor(0);
+    u8g2.drawBox(gen_x - 2, 1, gen_width + 4, 10);
+    u8g2.setDrawColor(1);
+    u8g2.drawStr(gen_x, 10, gen_str);
+  } else {
+    u8g2.drawStr(gen_x, 10, gen_str);
   }
 
   u8g2.setDrawColor(1);

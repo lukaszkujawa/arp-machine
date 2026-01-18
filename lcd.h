@@ -6,7 +6,7 @@
 class Arp;
 
 // Menu selection enum (must match arp-machine.ino)
-enum MenuSelection : uint8_t { SEL_BPM = 0, SEL_ROOT, SEL_SCALE, SEL_OCTAVE, SEL_DENSITY, SEL_EDIT, SEL_COUNT };
+enum MenuSelection : uint8_t { SEL_GENERATOR = 0, SEL_BPM, SEL_ROOT, SEL_SCALE, SEL_OCTAVE, SEL_DENSITY, SEL_EDIT, SEL_COUNT };
 
 /**
 Display used:

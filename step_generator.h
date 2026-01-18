@@ -8,7 +8,7 @@ enum OctaveRange : uint8_t;
 // Generator type enum - add new generators here
 enum GeneratorId : uint8_t {
   GEN_DEFAULT = 0,
-  // Add more generators here
+  GEN_CHORD,
   GENERATOR_COUNT
 };
 
