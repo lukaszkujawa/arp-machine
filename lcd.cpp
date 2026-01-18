@@ -104,12 +104,26 @@ void Lcd::refresh(unsigned long now) {
 
   u8g2.setDrawColor(0);
   if (_selection == SEL_GENERATOR) {
-    u8g2.setDrawColor(0);
     u8g2.drawBox(gen_x - 2, 1, gen_width + 4, 10);
     u8g2.setDrawColor(1);
     u8g2.drawStr(gen_x, 10, gen_str);
   } else {
     u8g2.drawStr(gen_x, 10, gen_str);
+  }
+
+  // Draw length before generator (highlight if selected)
+  char len_str[4];
+  snprintf(len_str, sizeof(len_str), "%d", _arp.length);
+  uint8_t len_width = u8g2.getStrWidth(len_str);
+  uint8_t len_x = gen_x - len_width - 6;
+
+  u8g2.setDrawColor(0);
+  if (_selection == SEL_LENGTH) {
+    u8g2.drawBox(len_x - 2, 1, len_width + 4, 10);
+    u8g2.setDrawColor(1);
+    u8g2.drawStr(len_x, 10, len_str);
+  } else {
+    u8g2.drawStr(len_x, 10, len_str);
   }
 
   u8g2.setDrawColor(1);
@@ -172,37 +186,44 @@ void Lcd::refresh(unsigned long now) {
       uint8_t x = GRID_X_OFFSET + col * (STEP_WIDTH + STEP_GAP) + beat_gap;
       uint8_t y = GRID_Y_OFFSET + row * (STEP_HEIGHT + STEP_GAP);
 
-      bool has_note = (_arp.steps[step_index] > 0);
-      bool is_current = (step_index == _arp.x);
-      bool is_edit_cursor = (_arp.editMode && step_index == _arp.editStep);
+      bool is_disabled = (step_index >= _arp.length);
 
-      if (is_edit_cursor) {
-        if (has_note) {
-          // Edit cursor over note: filled box with black inner frame
-          u8g2.drawBox(x, y, STEP_WIDTH, STEP_HEIGHT);
-          u8g2.setDrawColor(0);
-          u8g2.drawFrame(x + 2, y + 2, STEP_WIDTH - 4, STEP_HEIGHT - 4);
-          u8g2.setDrawColor(1);
-        } else {
-          // Edit cursor over empty: double border frame
-          u8g2.drawFrame(x, y, STEP_WIDTH, STEP_HEIGHT);
-          u8g2.drawFrame(x + 1, y + 1, STEP_WIDTH - 2, STEP_HEIGHT - 2);
-        }
-      } else if (is_current) {
-        // Current step: draw filled box with inverted inner if has note
-        u8g2.drawBox(x, y, STEP_WIDTH, STEP_HEIGHT);
-        if (has_note) {
-          // Invert inner area to show note within current step
-          u8g2.setDrawColor(0);
-          u8g2.drawBox(x + 2, y + 2, STEP_WIDTH - 4, STEP_HEIGHT - 4);
-          u8g2.setDrawColor(1);
-        }
-      } else if (has_note) {
-        // Has note: filled box
-        u8g2.drawBox(x, y, STEP_WIDTH, STEP_HEIGHT);
+      if (is_disabled) {
+        // Disabled step: just a bottom line
+        u8g2.drawHLine(x, y + STEP_HEIGHT - 1, STEP_WIDTH);
       } else {
-        // Empty step: just outline
-        u8g2.drawFrame(x, y, STEP_WIDTH, STEP_HEIGHT);
+        bool has_note = (_arp.steps[step_index] > 0);
+        bool is_current = (step_index == _arp.x);
+        bool is_edit_cursor = (_arp.editMode && step_index == _arp.editStep);
+
+        if (is_edit_cursor) {
+          if (has_note) {
+            // Edit cursor over note: filled box with black inner frame
+            u8g2.drawBox(x, y, STEP_WIDTH, STEP_HEIGHT);
+            u8g2.setDrawColor(0);
+            u8g2.drawFrame(x + 2, y + 2, STEP_WIDTH - 4, STEP_HEIGHT - 4);
+            u8g2.setDrawColor(1);
+          } else {
+            // Edit cursor over empty: double border frame
+            u8g2.drawFrame(x, y, STEP_WIDTH, STEP_HEIGHT);
+            u8g2.drawFrame(x + 1, y + 1, STEP_WIDTH - 2, STEP_HEIGHT - 2);
+          }
+        } else if (is_current) {
+          // Current step: draw filled box with inverted inner if has note
+          u8g2.drawBox(x, y, STEP_WIDTH, STEP_HEIGHT);
+          if (has_note) {
+            // Invert inner area to show note within current step
+            u8g2.setDrawColor(0);
+            u8g2.drawBox(x + 2, y + 2, STEP_WIDTH - 4, STEP_HEIGHT - 4);
+            u8g2.setDrawColor(1);
+          }
+        } else if (has_note) {
+          // Has note: filled box
+          u8g2.drawBox(x, y, STEP_WIDTH, STEP_HEIGHT);
+        } else {
+          // Empty step: just outline
+          u8g2.drawFrame(x, y, STEP_WIDTH, STEP_HEIGHT);
+        }
       }
     }
   }

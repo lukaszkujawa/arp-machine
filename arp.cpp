@@ -13,6 +13,7 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   octaveRange = OCT_2_3;  // Default to octave 2-3 range
   density = 45;  // Default 45% density
   generator = GEN_DEFAULT;  // Default generator
+  length = 64;  // Default full sequence length
   editMode = false;  // Start in normal mode
   editStep = 0;  // Edit cursor at step 0
   randomSeed(RANDOM_REG32);  // Seed from ESP8266 hardware RNG
@@ -98,6 +99,15 @@ void Arp::adjustGenerator(int8_t delta) {
   generator = (GeneratorId)newGen;
 }
 
+void Arp::adjustLength(int8_t delta) {
+  int8_t newLen = length + delta;
+  if (newLen < 1) newLen = 1;
+  if (newLen > 64) newLen = 64;
+  length = (uint8_t)newLen;
+  // Ensure playhead is within bounds
+  if (x >= length) x = 0;
+}
+
 void Arp::_update_bpm(uint8_t bpm) {
   _bpm = bpm;
   _note_delays_ms = 60000000UL / bpm / 4;
@@ -122,7 +132,7 @@ void Arp::tick(unsigned long now) {
     }
 
     _next_note_on = now + _note_delays_ms;
-    x = (x + 1) % 64;
+    x = (x + 1) % length;
   }
 
 }

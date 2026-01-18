@@ -7,7 +7,7 @@
 
 Midi midi;
 Arp arp(midi);
-MenuSelection currentSelection = SEL_GENERATOR;
+MenuSelection currentSelection = SEL_LENGTH;
 Lcd lcd(arp, currentSelection);
 
 // Rotary encoder pins
@@ -72,6 +72,7 @@ void handleEncoder() {
     int8_t delta = (digitalRead(ENC_DT) == HIGH) ? 1 : -1;
 
     switch (currentSelection) {
+      case SEL_LENGTH:    arp.adjustLength(delta); break;
       case SEL_GENERATOR: arp.adjustGenerator(delta); break;
       case SEL_BPM:       arp.adjustBpm(delta); break;
       case SEL_ROOT:      arp.adjustRootNote(delta); break;

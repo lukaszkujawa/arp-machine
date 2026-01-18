@@ -33,6 +33,7 @@ class Arp {
     ScaleId scale;
     OctaveRange octaveRange;
     GeneratorId generator;
+    uint8_t length;
 
     Arp(Midi& midi);
 
@@ -45,6 +46,7 @@ class Arp {
     void adjustOctaveRange(int8_t delta);
     void adjustDensity(int8_t delta);
     void adjustGenerator(int8_t delta);
+    void adjustLength(int8_t delta);
     uint8_t getBpm() const { return _bpm; }
     bool isPaused() const { return _paused; }
 
