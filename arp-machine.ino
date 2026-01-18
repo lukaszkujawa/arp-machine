@@ -66,10 +66,11 @@ void handleEncoder() {
   if (clk == LOW) {
     int8_t delta = (digitalRead(ENC_DT) == HIGH) ? 1 : -1;
     switch (currentSelection) {
-      case SEL_BPM:    arp.adjustBpm(delta * 5); break;
-      case SEL_ROOT:   arp.adjustRootNote(delta); break;
-      case SEL_SCALE:  arp.adjustScale(delta); break;
-      case SEL_OCTAVE: arp.adjustOctaveRange(delta); break;
+      case SEL_BPM:     arp.adjustBpm(delta * 5); break;
+      case SEL_ROOT:    arp.adjustRootNote(delta); break;
+      case SEL_SCALE:   arp.adjustScale(delta); break;
+      case SEL_OCTAVE:  arp.adjustOctaveRange(delta); break;
+      case SEL_DENSITY: arp.adjustDensity(delta); break;
       default: break;
     }
     lastEncoderMs = now;

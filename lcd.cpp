@@ -122,7 +122,13 @@ void Lcd::refresh(unsigned long now) {
   char density_str[8];
   snprintf(density_str, sizeof(density_str), "%d%%", _arp.density);
   uint8_t density_width = u8g2.getStrWidth(density_str);
-  u8g2.drawStr(126 - density_width, 24, density_str);
+  uint8_t density_x = 126 - density_width;
+  if (_selection == SEL_DENSITY) {
+    u8g2.drawBox(density_x - 1, 14, density_width + 2, 12);
+    u8g2.setDrawColor(0);
+  }
+  u8g2.drawStr(density_x, 24, density_str);
+  u8g2.setDrawColor(1);
 
   // Draw 4 rows of 16 steps (64 steps total) at bottom
   for (uint8_t row = 0; row < 4; row++) {

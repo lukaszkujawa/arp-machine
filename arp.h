@@ -41,6 +41,7 @@ class Arp {
     void adjustRootNote(int8_t delta);
     void adjustScale(int8_t delta);
     void adjustOctaveRange(int8_t delta);
+    void adjustDensity(int8_t delta);
     uint8_t getBpm() const { return _bpm; }
     bool isPaused() const { return _paused; }
 

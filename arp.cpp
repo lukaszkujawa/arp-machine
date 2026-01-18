@@ -10,6 +10,7 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   root_note = 0;  // Default to C
   scale = MAJOR;  // Default to Major
   octaveRange = OCT_2_3;  // Default to octave 2-3 range
+  density = 45;  // Default 45% density
   randomSeed(RANDOM_REG32);  // Seed from ESP8266 hardware RNG
 
   _update_bpm(120);
@@ -27,8 +28,6 @@ int8_t Arp::_randomOctaveOffset() {
 }
 
 void Arp::_generate_steps() {
-  // Pick random density (root_note and scale are set by buttons)
-  density = random(10, 71);   // 10-70% density
   uint8_t base_note = root_note + (octave * 12);
 
   // Generate first 16 steps (Page 1)
@@ -139,6 +138,13 @@ void Arp::adjustOctaveRange(int8_t delta) {
   if (newRange < 0) newRange = OCT_RANGE_COUNT - 1;
   if (newRange >= OCT_RANGE_COUNT) newRange = 0;
   octaveRange = (OctaveRange)newRange;
+}
+
+void Arp::adjustDensity(int8_t delta) {
+  int16_t newDensity = density + delta * 5;
+  if (newDensity < 10) newDensity = 10;
+  if (newDensity > 90) newDensity = 90;
+  density = (uint8_t)newDensity;
 }
 
 void Arp::_update_bpm(uint8_t bpm) {
