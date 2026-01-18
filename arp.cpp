@@ -4,6 +4,7 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   _next_note_on = 0;
   _next_note_off = 0;
   _note_playing = 0;
+  _paused = false;
 
   octave = 4;  // Default octave (C4 = MIDI 48)
   root_note = 0;  // Default to C
@@ -104,16 +105,40 @@ void Arp::regenerate() {
   x = 0;  // Reset step position
 }
 
-void Arp::rotateRootNote() {
-  root_note = (root_note + 1) % 12;
+void Arp::togglePause() {
+  _paused = !_paused;
+  if (_paused && _note_playing > 0) {
+    _midi.noteOff(_note_playing);
+    _note_playing = 0;
+  }
 }
 
-void Arp::rotateScale() {
-  scale = (ScaleId)((scale + 1) % SCALE_COUNT);
+void Arp::adjustBpm(int8_t delta) {
+  int16_t newBpm = _bpm + delta;
+  if (newBpm < 40) newBpm = 40;
+  if (newBpm > 240) newBpm = 240;
+  _update_bpm((uint8_t)newBpm);
 }
 
-void Arp::rotateOctaveRange() {
-  octaveRange = (OctaveRange)((octaveRange + 1) % OCT_RANGE_COUNT);
+void Arp::adjustRootNote(int8_t delta) {
+  int8_t newRoot = root_note + delta;
+  if (newRoot < 0) newRoot = 11;
+  if (newRoot > 11) newRoot = 0;
+  root_note = (uint8_t)newRoot;
+}
+
+void Arp::adjustScale(int8_t delta) {
+  int8_t newScale = scale + delta;
+  if (newScale < 0) newScale = SCALE_COUNT - 1;
+  if (newScale >= SCALE_COUNT) newScale = 0;
+  scale = (ScaleId)newScale;
+}
+
+void Arp::adjustOctaveRange(int8_t delta) {
+  int8_t newRange = octaveRange + delta;
+  if (newRange < 0) newRange = OCT_RANGE_COUNT - 1;
+  if (newRange >= OCT_RANGE_COUNT) newRange = 0;
+  octaveRange = (OctaveRange)newRange;
 }
 
 void Arp::_update_bpm(uint8_t bpm) {
@@ -127,6 +152,8 @@ void Arp::tick(unsigned long now) {
     _midi.noteOff(_note_playing);
     _note_playing = 0;
   }
+
+  if (_paused) return;
 
   if(_note_playing == 0 && (long)(now - _next_note_on) >= 0) {
     _note_playing = steps[x];

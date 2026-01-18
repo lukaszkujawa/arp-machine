@@ -3,39 +3,96 @@
 
 #include "midi.h"
 #include "arp.h"
-#include "lcd.h"
+#include "lcd.h"  // Includes MenuSelection enum
 
 Midi midi;
 Arp arp(midi);
-Lcd lcd(arp);
+MenuSelection currentSelection = SEL_BPM;
+Lcd lcd(arp, currentSelection);
 
-const uint32_t DEBOUNCE_MS = 200;
+// Rotary encoder pins
+const uint8_t ENC_CLK = 2;
+const uint8_t ENC_DT = 16;
+
+// Button pins
+const uint8_t BTN_PAUSE = 12;     // Pause/resume ARP
+const uint8_t BTN_SWITCH = 13;    // Switch menu selection
 const uint8_t BTN_REGEN = 14;     // Regenerate sequence
-const uint8_t BTN_ROOT = 12;      // Rotate root note
-const uint8_t BTN_SCALE = 13;     // Rotate scale
 
+// Timing
+const uint32_t BTN_DEBOUNCE_MS = 200;
+const uint32_t ENC_DEBOUNCE_MS = 2;
+
+// Encoder state
+uint8_t lastClk;
+uint32_t lastEncoderMs = 0;
+
+// Button state
 volatile uint32_t lastIsrMs[3] = {0, 0, 0};
 volatile uint8_t pendingMask = 0;
 
 void IRAM_ATTR isrRegen() {
   uint32_t now = millis();
-  if (now - lastIsrMs[0] < DEBOUNCE_MS) return;
+  if (now - lastIsrMs[0] < BTN_DEBOUNCE_MS) return;
   lastIsrMs[0] = now;
-  pendingMask |= (1 << 0);
+  pendingMask |= 0x01;
 }
 
-void IRAM_ATTR isrRoot() {
+void IRAM_ATTR isrPause() {
   uint32_t now = millis();
-  if (now - lastIsrMs[1] < DEBOUNCE_MS) return;
+  if (now - lastIsrMs[1] < BTN_DEBOUNCE_MS) return;
   lastIsrMs[1] = now;
-  pendingMask |= (1 << 1);
+  pendingMask |= 0x02;
 }
 
-void IRAM_ATTR isrScale() {
+void IRAM_ATTR isrSwitch() {
   uint32_t now = millis();
-  if (now - lastIsrMs[2] < DEBOUNCE_MS) return;
+  if (now - lastIsrMs[2] < BTN_DEBOUNCE_MS) return;
   lastIsrMs[2] = now;
-  pendingMask |= (1 << 2);
+  pendingMask |= 0x04;
+}
+
+void handleEncoder() {
+  uint8_t clk = digitalRead(ENC_CLK);
+  if (clk == lastClk) return;
+
+  uint32_t now = millis();
+  if (now - lastEncoderMs < ENC_DEBOUNCE_MS) {
+    lastClk = clk;
+    return;
+  }
+
+  // Only act on falling edge
+  if (clk == LOW) {
+    int8_t delta = (digitalRead(ENC_DT) == HIGH) ? 1 : -1;
+    switch (currentSelection) {
+      case SEL_BPM:    arp.adjustBpm(delta * 5); break;
+      case SEL_ROOT:   arp.adjustRootNote(delta); break;
+      case SEL_SCALE:  arp.adjustScale(delta); break;
+      case SEL_OCTAVE: arp.adjustOctaveRange(delta); break;
+      default: break;
+    }
+    lastEncoderMs = now;
+  }
+  lastClk = clk;
+}
+
+void handleButtons() {
+  uint8_t mask = pendingMask;
+  if (!mask) return;
+
+  if (mask & 0x01) {
+    pendingMask &= ~0x01;
+    arp.regenerate();
+  }
+  if (mask & 0x02) {
+    pendingMask &= ~0x02;
+    arp.togglePause();
+  }
+  if (mask & 0x04) {
+    pendingMask &= ~0x04;
+    currentSelection = (MenuSelection)((currentSelection + 1) % SEL_COUNT);
+  }
 }
 
 void setup() {
@@ -43,36 +100,29 @@ void setup() {
   WiFi.forceSleepBegin();
   delay(10);
 
-  pinMode(LED_BUILTIN, OUTPUT);  // Debug LED
+  pinMode(LED_BUILTIN, OUTPUT);
   midi.setup();
   lcd.setup();
 
+  // Encoder pins
+  pinMode(ENC_CLK, INPUT_PULLUP);
+  pinMode(ENC_DT, INPUT_PULLUP);
+  lastClk = digitalRead(ENC_CLK);
+
+  // Button pins
+  pinMode(BTN_PAUSE, INPUT_PULLUP);
+  pinMode(BTN_SWITCH, INPUT_PULLUP);
   pinMode(BTN_REGEN, INPUT_PULLUP);
-  pinMode(BTN_ROOT, INPUT_PULLUP);
-  pinMode(BTN_SCALE, INPUT_PULLUP);
 
   attachInterrupt(digitalPinToInterrupt(BTN_REGEN), isrRegen, FALLING);
-  attachInterrupt(digitalPinToInterrupt(BTN_ROOT), isrRoot, FALLING);
-  attachInterrupt(digitalPinToInterrupt(BTN_SCALE), isrScale, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BTN_PAUSE), isrPause, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BTN_SWITCH), isrSwitch, FALLING);
 }
 
 void loop() {
   unsigned long now = micros();
-
-  // Check for button presses
-  if (pendingMask & (1 << 0)) {
-    pendingMask &= ~(1 << 0);
-    arp.regenerate();
-  }
-  if (pendingMask & (1 << 1)) {
-    pendingMask &= ~(1 << 1);
-    arp.rotateRootNote();
-  }
-  if (pendingMask & (1 << 2)) {
-    pendingMask &= ~(1 << 2);
-    arp.rotateScale();
-  }
-
+  handleEncoder();
+  handleButtons();
   arp.tick(now);
   lcd.refresh(now);
 }

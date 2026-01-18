@@ -36,10 +36,13 @@ class Arp {
 
     void tick(unsigned long now);
     void regenerate();
-    void rotateRootNote();
-    void rotateScale();
-    void rotateOctaveRange();
+    void togglePause();
+    void adjustBpm(int8_t delta);
+    void adjustRootNote(int8_t delta);
+    void adjustScale(int8_t delta);
+    void adjustOctaveRange(int8_t delta);
     uint8_t getBpm() const { return _bpm; }
+    bool isPaused() const { return _paused; }
 
 
   private:
@@ -47,6 +50,7 @@ class Arp {
     unsigned long _next_note_on;
     unsigned long _next_note_off;
     uint8_t _note_playing;
+    bool _paused;
 
     unsigned long _note_delays_ms;
     unsigned long _note_gate_ms;

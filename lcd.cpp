@@ -27,9 +27,10 @@ static const char* SCALE_NAMES[] = {"Major", "Minor", "Dorian", "Penta", "Harm M
 // Octave range names
 static const char* OCT_RANGE_NAMES[] = {"3", "2-3", "3-4", "2-4"};
 
-Lcd::Lcd(Arp& arp) : _arp(arp) {
+Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) {
   _last_update = 0;
   _last_step = -1;
+  _last_selection = SEL_COUNT;  // Invalid to force initial draw
 }
 
 void Lcd::setup() {
@@ -40,11 +41,12 @@ void Lcd::setup() {
 }
 
 void Lcd::refresh(unsigned long now) {
-  // Only redraw when step changes
-  if (_arp.x == _last_step) {
+  // Redraw when step or selection changes
+  if (_arp.x == _last_step && _selection == _last_selection) {
     return;
   }
   _last_step = _arp.x;
+  _last_selection = _selection;
 
   u8g2.clearBuffer();
 
@@ -62,23 +64,61 @@ void Lcd::refresh(unsigned long now) {
     u8g2.drawCircle(102, 6, 3);  // Empty circle when off beat
   }
 
-  // Draw BPM on right side
+  // Draw BPM on right side (highlight if selected)
   char bpm_str[8];
   snprintf(bpm_str, sizeof(bpm_str), "%d", _arp.getBpm());
   uint8_t bpm_width = u8g2.getStrWidth(bpm_str);
-  u8g2.drawStr(126 - bpm_width, 10, bpm_str);
+  uint8_t bpm_x = 126 - bpm_width;
+
+  if (_selection == SEL_BPM) {
+    // Draw white box behind BPM to highlight it
+    u8g2.setDrawColor(0);
+    u8g2.drawBox(bpm_x - 2, 1, bpm_width + 4, 10);
+    u8g2.setDrawColor(1);
+    u8g2.drawStr(bpm_x, 10, bpm_str);
+  } else {
+    u8g2.drawStr(bpm_x, 10, bpm_str);
+  }
 
   u8g2.setDrawColor(1);
 
-  // Draw root note, scale, and octave range
-  char info_str[24];
-  snprintf(info_str, sizeof(info_str), "%s %s  Oct%s",
-           NOTE_NAMES[_arp.root_note],
-           SCALE_NAMES[_arp.scale],
-           OCT_RANGE_NAMES[_arp.octaveRange]);
-  u8g2.drawStr(2, 24, info_str);
+  // Draw settings row with highlighting for selected item
+  uint8_t xPos = 2;
+  char buf[12];
 
-  // Draw density
+  // Root note
+  snprintf(buf, sizeof(buf), "%s", NOTE_NAMES[_arp.root_note]);
+  if (_selection == SEL_ROOT) {
+    uint8_t w = u8g2.getStrWidth(buf);
+    u8g2.drawBox(xPos - 1, 14, w + 2, 12);
+    u8g2.setDrawColor(0);
+  }
+  u8g2.drawStr(xPos, 24, buf);
+  u8g2.setDrawColor(1);
+  xPos += u8g2.getStrWidth(buf) + 4;
+
+  // Scale
+  snprintf(buf, sizeof(buf), "%s", SCALE_NAMES[_arp.scale]);
+  if (_selection == SEL_SCALE) {
+    uint8_t w = u8g2.getStrWidth(buf);
+    u8g2.drawBox(xPos - 1, 14, w + 2, 12);
+    u8g2.setDrawColor(0);
+  }
+  u8g2.drawStr(xPos, 24, buf);
+  u8g2.setDrawColor(1);
+  xPos += u8g2.getStrWidth(buf) + 4;
+
+  // Octave range
+  snprintf(buf, sizeof(buf), "Oct%s", OCT_RANGE_NAMES[_arp.octaveRange]);
+  if (_selection == SEL_OCTAVE) {
+    uint8_t w = u8g2.getStrWidth(buf);
+    u8g2.drawBox(xPos - 1, 14, w + 2, 12);
+    u8g2.setDrawColor(0);
+  }
+  u8g2.drawStr(xPos, 24, buf);
+  u8g2.setDrawColor(1);
+
+  // Draw density on the right
   char density_str[8];
   snprintf(density_str, sizeof(density_str), "%d%%", _arp.density);
   uint8_t density_width = u8g2.getStrWidth(density_str);

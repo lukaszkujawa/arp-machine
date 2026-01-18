@@ -5,6 +5,9 @@
 // Forward declaration
 class Arp;
 
+// Menu selection enum (must match arp-machine.ino)
+enum MenuSelection : uint8_t { SEL_BPM = 0, SEL_ROOT, SEL_SCALE, SEL_OCTAVE, SEL_COUNT };
+
 /**
 Display used:
 XTVTX 3PCS 0.96 Inch OLED Module 12864 128x64 Driver IIC I2C
@@ -17,13 +20,15 @@ class Lcd {
 
   public:
 
-    Lcd(Arp& arp);
+    Lcd(Arp& arp, MenuSelection& selection);
     void setup();
     void refresh(unsigned long now);
 
   private:
     Arp& _arp;
+    MenuSelection& _selection;
     unsigned long _last_update;
     int8_t _last_step;
+    MenuSelection _last_selection;
 
 };
