@@ -22,6 +22,7 @@ class Lcd {
 
     Lcd(Arp& arp, MenuSelection& selection);
     void setup();
+    void showIntro();
     void refresh(unsigned long now);
 
   private:

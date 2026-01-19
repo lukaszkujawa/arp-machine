@@ -78,6 +78,73 @@ void Lcd::setup() {
   u8g2.setFont(u8g2_font_6x10_tf);
 }
 
+void Lcd::showIntro() {
+  u8g2.clearBuffer();
+
+  // Draw "arpMachine" title
+  u8g2.setFont(u8g2_font_helvB12_tr);
+  const char* title = "arpMachine";
+  uint8_t title_width = u8g2.getStrWidth(title);
+  u8g2.drawStr((128 - title_width) / 2, 14, title);
+
+  // Draw a cute robot (centered, below title)
+  uint8_t rx = 64;  // Robot center X
+  uint8_t ry = 42;  // Robot center Y
+
+  // Antenna
+  u8g2.drawLine(rx, ry - 18, rx, ry - 22);
+  u8g2.drawDisc(rx, ry - 24, 2);
+
+  // Head (rounded rectangle effect)
+  u8g2.drawRBox(rx - 12, ry - 18, 24, 18, 3);
+
+  // Eyes - one normal, one winking ;)
+  u8g2.setDrawColor(0);
+  u8g2.drawDisc(rx - 5, ry - 10, 3);  // Left eye socket
+  u8g2.drawDisc(rx + 5, ry - 10, 3);  // Right eye socket
+  u8g2.setDrawColor(1);
+  u8g2.drawDisc(rx - 5, ry - 10, 1);  // Left pupil
+  u8g2.drawLine(rx + 3, ry - 10, rx + 7, ry - 10);  // Right eye winking (line)
+
+  // Mouth (happy smile)
+  u8g2.drawPixel(rx - 4, ry - 3);
+  u8g2.drawLine(rx - 3, ry - 2, rx + 3, ry - 2);
+  u8g2.drawPixel(rx + 4, ry - 3);
+
+  // Body
+  u8g2.drawRBox(rx - 10, ry + 2, 20, 16, 2);
+
+  // Body details - "buttons" / lights
+  u8g2.setDrawColor(0);
+  u8g2.drawBox(rx - 6, ry + 5, 3, 3);
+  u8g2.drawBox(rx - 1, ry + 5, 3, 3);
+  u8g2.drawBox(rx + 4, ry + 5, 3, 3);
+  u8g2.setDrawColor(1);
+
+  // Speaker grille on body
+  for (uint8_t i = 0; i < 3; i++) {
+    u8g2.drawHLine(rx - 5, ry + 12 + i * 2, 10);
+  }
+
+  // Arms (one up waving!)
+  u8g2.drawLine(rx - 10, ry + 5, rx - 16, ry + 1);   // Left arm up (waving)
+  u8g2.drawLine(rx - 16, ry + 1, rx - 18, ry - 2);   // Left hand
+  u8g2.drawLine(rx + 10, ry + 5, rx + 16, ry + 10);  // Right arm down
+  u8g2.drawLine(rx + 16, ry + 10, rx + 18, ry + 8);  // Right hand
+
+  // Legs
+  u8g2.drawLine(rx - 5, ry + 18, rx - 5, ry + 22);
+  u8g2.drawLine(rx + 5, ry + 18, rx + 5, ry + 22);
+  // Feet
+  u8g2.drawHLine(rx - 8, ry + 22, 6);
+  u8g2.drawHLine(rx + 3, ry + 22, 6);
+
+  u8g2.sendBuffer();
+
+  // Reset to normal font
+  u8g2.setFont(u8g2_font_6x10_tf);
+}
+
 void Lcd::refresh(unsigned long now) {
   // Get current edit step values for comparison
   int8_t current_edit_note = _arp.editMode ? _arp.steps[_arp.editStep] : 0;

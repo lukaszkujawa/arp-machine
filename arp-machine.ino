@@ -28,6 +28,7 @@ const uint32_t ENC_DEBOUNCE_US = 1500;  // Microsecond debounce for encoder
 uint8_t encState = 0;           // 2-bit state: (CLK << 1) | DT
 int8_t encAccum = 0;            // Accumulated pulses (need 4 for one detent)
 uint32_t lastEncoderUs = 0;
+uint32_t lastDetentUs = 0;      // Time of last completed detent (for acceleration)
 
 // Quadrature lookup table: [oldState << 2 | newState] -> delta
 // Valid transitions give +1 or -1, invalid give 0
@@ -88,6 +89,15 @@ void handleEncoder() {
   // We have a full detent worth of movement
   int8_t dir = (encAccum > 0) ? 1 : -1;
   encAccum = 0;
+
+  // Acceleration: faster rotation = bigger steps
+  uint32_t interval = now - lastDetentUs;
+  lastDetentUs = now;
+  int8_t mult = 1;
+  if (interval < 30000)      mult = 10;  // Very fast: <30ms
+  else if (interval < 60000) mult = 5;   // Fast: <60ms
+  else if (interval < 100000) mult = 2;  // Medium: <100ms
+  dir *= mult;
 
   switch (currentSelection) {
     case SEL_CHANNEL:   arp.adjustChannel(dir); break;
@@ -170,12 +180,15 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   midi.setup();
   lcd.setup();
+  lcd.showIntro();
+  delay(2000);
 
   // Encoder pins
   pinMode(ENC_CLK, INPUT_PULLUP);
   pinMode(ENC_DT, INPUT_PULLUP);
   pinMode(ENC_BTN, INPUT_PULLUP);
   encState = (digitalRead(ENC_CLK) << 1) | digitalRead(ENC_DT);
+  lastDetentUs = micros();
 
   // Button pins
   pinMode(BTN_PAUSE, INPUT_PULLUP);
