@@ -223,7 +223,17 @@ void Arp::toggleEditMode() {
 }
 
 void Arp::cycleEditSubMode() {
-  editSubMode = (EditSubMode)((editSubMode + 1) % EDIT_SUBMODE_COUNT);
+  EditSubMode nextMode = (EditSubMode)((editSubMode + 1) % EDIT_SUBMODE_COUNT);
+
+  // If entering note or mode editing and current step is inactive, activate it first
+  if ((nextMode == EDIT_NOTE || nextMode == EDIT_MODE) && steps[editStep] == 0) {
+    uint8_t base_note = root_note + (octave * 12);
+    uint8_t scale_degree = random(0, 8);
+    steps[editStep] = base_note + SCALE_STEPS[scale][scale_degree] + _randomOctaveOffset();
+    steps_mods[editStep] = 0;  // Normal modifier
+  }
+
+  editSubMode = nextMode;
 }
 
 void Arp::moveEditCursor(int8_t delta) {
