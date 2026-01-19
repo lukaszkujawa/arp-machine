@@ -33,3 +33,7 @@ void Midi::allNotesOff() {
   sendByte(123); // CC 123 = all notes off
   sendByte(0);
 }
+
+void Midi::setChannel(uint8_t ch) {
+  _channel = ch & 0x0F;  // Ensure 0-15 range
+}

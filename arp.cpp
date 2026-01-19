@@ -24,6 +24,7 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   density = 45;  // Default 45% density
   generator = GEN_DEFAULT;  // Default generator
   length = 64;  // Default full sequence length
+  channel = 0;  // Default MIDI channel 1 (0-indexed)
   editMode = false;  // Start in normal mode
   editStep = 0;  // Edit cursor at step 0
   editSubMode = EDIT_SEQUENCE;  // Default to sequence navigation
@@ -119,6 +120,14 @@ void Arp::adjustLength(int8_t delta) {
   // Ensure playhead and edit cursor are within bounds
   if (x >= length) x = 0;
   if (editStep >= length) editStep = length - 1;
+}
+
+void Arp::adjustChannel(int8_t delta) {
+  int8_t newCh = channel + delta;
+  if (newCh < 0) newCh = 15;
+  if (newCh > 15) newCh = 0;
+  channel = (uint8_t)newCh;
+  _midi.setChannel(channel);
 }
 
 void Arp::_update_bpm(uint8_t bpm) {

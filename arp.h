@@ -54,6 +54,7 @@ class Arp {
     OctaveRange octaveRange;
     GeneratorId generator;
     uint8_t length;
+    uint8_t channel;  // MIDI channel 0-15 (displayed as 1-16)
 
     Arp(Midi& midi);
 
@@ -67,6 +68,7 @@ class Arp {
     void adjustDensity(int8_t delta);
     void adjustGenerator(int8_t delta);
     void adjustLength(int8_t delta);
+    void adjustChannel(int8_t delta);
     uint8_t getBpm() const { return _bpm; }
     bool isPaused() const { return _paused; }
 

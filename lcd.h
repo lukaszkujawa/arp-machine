@@ -6,7 +6,7 @@
 class Arp;
 
 // Menu selection enum (must match arp-machine.ino)
-enum MenuSelection : uint8_t { SEL_LENGTH = 0, SEL_GENERATOR, SEL_BPM, SEL_ROOT, SEL_SCALE, SEL_OCTAVE, SEL_DENSITY, SEL_EDIT, SEL_COUNT };
+enum MenuSelection : uint8_t { SEL_CHANNEL = 0, SEL_LENGTH, SEL_GENERATOR, SEL_BPM, SEL_ROOT, SEL_SCALE, SEL_OCTAVE, SEL_DENSITY, SEL_EDIT, SEL_COUNT };
 
 /**
 Display used:
@@ -40,6 +40,7 @@ class Lcd {
     uint8_t _last_scale;
     uint8_t _last_octave_range;
     uint8_t _last_density;
+    uint8_t _last_channel;
     int8_t _last_edit_note;
     int8_t _last_edit_mod;
     uint8_t _last_edit_submode;
