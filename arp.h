@@ -17,6 +17,12 @@ enum StepMod : uint8_t {
   MOD_RATCHET2,   // R2 - Trigger twice with shorter gate
   MOD_RATCHET3,   // R3 - Trigger three times
   MOD_HALF,       // 1:2 - Trigger every second time
+  MOD_THIRD,      // 1:3 - Trigger every third time
+  MOD_QUARTER,    // 1:4 - Trigger every fourth time
+  MOD_PROB_10,    // 10% - 10% chance to trigger
+  MOD_PROB_25,    // 25% - 25% chance to trigger
+  MOD_PROB_50,    // 50% - 50% chance to trigger
+  MOD_PROB_75,    // 75% - 75% chance to trigger
   STEP_MOD_COUNT
 }; 
 
@@ -90,8 +96,8 @@ class Arp {
     unsigned long _next_ratchet_on;  // When to trigger next ratchet hit
     uint8_t _ratchet_note;         // Note to play for ratchet
 
-    // 1:2 mod state (bit flags for each step)
-    uint64_t _half_trigger_state; // Bit per step: 0 = skip, 1 = play
+    // Divisor mod state (counter per step for 1:2, 1:3, 1:4 mods)
+    uint8_t _step_trigger_counter[64]; // Counter per step, play when counter % divisor == 0
 
     unsigned long _note_delays_ms;
     unsigned long _note_gate_ms;

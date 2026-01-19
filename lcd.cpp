@@ -43,7 +43,7 @@ static void midiNoteToString(int8_t note, char* buf, size_t bufSize) {
 }
 
 // Step mod names
-static const char* MOD_NAMES[] = {"N", "R2", "R3", "1:2"};
+static const char* MOD_NAMES[] = {"N", "R2", "R3", "1:2", "1:3", "1:4", "10%", "25%", "50%", "75%"};
 
 // Convert step mod to mode string
 static const char* modToString(int8_t mod) {

@@ -14,8 +14,8 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   _next_ratchet_on = 0;
   _ratchet_note = 0;
 
-  // 1:2 mod state - all steps start as "play" (1)
-  _half_trigger_state = 0xFFFFFFFFFFFFFFFFULL;
+  // Divisor mod state - all steps start at counter 0 (will play first time)
+  memset(_step_trigger_counter, 0, sizeof(_step_trigger_counter));
 
   octave = 4;  // Default octave (C4 = MIDI 48)
   root_note = 0;  // Default to C
@@ -152,15 +152,27 @@ void Arp::tick(unsigned long now) {
 
     bool should_play = true;
 
-    // Handle 1:2 mod - check if we should play this time
-    if (mod == MOD_HALF && note > 0) {
-      uint64_t step_bit = 1ULL << x;
-      if (_half_trigger_state & step_bit) {
-        should_play = true;
-        _half_trigger_state &= ~step_bit;  // Next time skip
-      } else {
-        should_play = false;
-        _half_trigger_state |= step_bit;   // Next time play
+    // Handle divisor mods (1:2, 1:3, 1:4) - play when counter hits 0
+    if (note > 0) {
+      if (mod == MOD_HALF) {
+        should_play = (_step_trigger_counter[x] % 2) == 0;
+        _step_trigger_counter[x]++;
+      } else if (mod == MOD_THIRD) {
+        should_play = (_step_trigger_counter[x] % 3) == 0;
+        _step_trigger_counter[x]++;
+      } else if (mod == MOD_QUARTER) {
+        should_play = (_step_trigger_counter[x] % 4) == 0;
+        _step_trigger_counter[x]++;
+      }
+      // Handle probability mods
+      else if (mod == MOD_PROB_10) {
+        should_play = random(100) < 10;
+      } else if (mod == MOD_PROB_25) {
+        should_play = random(100) < 25;
+      } else if (mod == MOD_PROB_50) {
+        should_play = random(100) < 50;
+      } else if (mod == MOD_PROB_75) {
+        should_play = random(100) < 75;
       }
     }
 
