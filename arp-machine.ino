@@ -22,11 +22,21 @@ const uint8_t BTN_REGEN = 14;     // Regenerate sequence
 
 // Timing
 const uint32_t BTN_DEBOUNCE_MS = 200;
-const uint32_t ENC_DEBOUNCE_MS = 2;
+const uint32_t ENC_DEBOUNCE_US = 1500;  // Microsecond debounce for encoder
 
-// Encoder state
-uint8_t lastClk;
-uint32_t lastEncoderMs = 0;
+// Encoder state - quadrature decoder
+uint8_t encState = 0;           // 2-bit state: (CLK << 1) | DT
+int8_t encAccum = 0;            // Accumulated pulses (need 4 for one detent)
+uint32_t lastEncoderUs = 0;
+
+// Quadrature lookup table: [oldState << 2 | newState] -> delta
+// Valid transitions give +1 or -1, invalid give 0
+const int8_t ENC_TABLE[16] = {
+   0, -1,  1,  0,   // from state 0 (00)
+   1,  0,  0, -1,   // from state 1 (01)
+  -1,  0,  0,  1,   // from state 2 (10)
+   0,  1, -1,  0    // from state 3 (11)
+};
 
 // Button state
 volatile uint32_t lastIsrMs[3] = {0, 0, 0};
@@ -58,40 +68,46 @@ void IRAM_ATTR isrSwitch() {
 }
 
 void handleEncoder() {
-  uint8_t clk = digitalRead(ENC_CLK);
-  if (clk == lastClk) return;
+  uint32_t now = micros();
+  if ((now - lastEncoderUs) < ENC_DEBOUNCE_US) return;
 
-  uint32_t now = millis();
-  if (now - lastEncoderMs < ENC_DEBOUNCE_MS) {
-    lastClk = clk;
-    return;
+  uint8_t newState = (digitalRead(ENC_CLK) << 1) | digitalRead(ENC_DT);
+  if (newState == encState) return;
+
+  // Lookup delta from state transition table
+  int8_t delta = ENC_TABLE[(encState << 2) | newState];
+  encState = newState;
+  lastEncoderUs = now;
+
+  if (delta == 0) return;  // Invalid transition, ignore
+
+  // Accumulate pulses - most encoders need 4 transitions per detent
+  encAccum += delta;
+  if (encAccum < 4 && encAccum > -4) return;
+
+  // We have a full detent worth of movement
+  int8_t dir = (encAccum > 0) ? 1 : -1;
+  encAccum = 0;
+
+  switch (currentSelection) {
+    case SEL_CHANNEL:   arp.adjustChannel(dir); break;
+    case SEL_SWING:     arp.adjustSwing(dir); break;
+    case SEL_LENGTH:    arp.adjustLength(dir); break;
+    case SEL_GENERATOR: arp.adjustGenerator(dir); break;
+    case SEL_BPM:       arp.adjustBpm(dir); break;
+    case SEL_ROOT:      arp.adjustRootNote(dir); break;
+    case SEL_SCALE:     arp.adjustScale(dir); break;
+    case SEL_OCTAVE:    arp.adjustOctaveRange(dir); break;
+    case SEL_DENSITY:   arp.adjustDensity(dir); break;
+    case SEL_EDIT:
+      switch (arp.editSubMode) {
+        case EDIT_SEQUENCE: arp.moveEditCursor(dir); break;
+        case EDIT_NOTE:     arp.adjustCurrentStepNote(dir); break;
+        case EDIT_MODE:     arp.adjustCurrentStepMod(dir); break;
+      }
+      break;
+    default: break;
   }
-
-  // Only act on falling edge
-  if (clk == LOW) {
-    int8_t delta = (digitalRead(ENC_DT) == HIGH) ? 1 : -1;
-
-    switch (currentSelection) {
-      case SEL_LENGTH:    arp.adjustLength(delta); break;
-      case SEL_GENERATOR: arp.adjustGenerator(delta); break;
-      case SEL_BPM:       arp.adjustBpm(delta); break;
-      case SEL_CHANNEL:   arp.adjustChannel(delta); break;
-      case SEL_ROOT:      arp.adjustRootNote(delta); break;
-      case SEL_SCALE:     arp.adjustScale(delta); break;
-      case SEL_OCTAVE:    arp.adjustOctaveRange(delta); break;
-      case SEL_DENSITY:   arp.adjustDensity(delta); break;
-      case SEL_EDIT:
-        switch (arp.editSubMode) {
-          case EDIT_SEQUENCE: arp.moveEditCursor(delta); break;
-          case EDIT_NOTE:     arp.adjustCurrentStepNote(delta); break;
-          case EDIT_MODE:     arp.adjustCurrentStepMod(delta); break;
-        }
-        break;
-      default: break;
-    }
-    lastEncoderMs = now;
-  }
-  lastClk = clk;
 }
 
 void handleEncButton() {
@@ -159,7 +175,7 @@ void setup() {
   pinMode(ENC_CLK, INPUT_PULLUP);
   pinMode(ENC_DT, INPUT_PULLUP);
   pinMode(ENC_BTN, INPUT_PULLUP);
-  lastClk = digitalRead(ENC_CLK);
+  encState = (digitalRead(ENC_CLK) << 1) | digitalRead(ENC_DT);
 
   // Button pins
   pinMode(BTN_PAUSE, INPUT_PULLUP);

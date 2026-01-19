@@ -55,6 +55,7 @@ class Arp {
     GeneratorId generator;
     uint8_t length;
     uint8_t channel;  // MIDI channel 0-15 (displayed as 1-16)
+    uint8_t swing;    // Swing amount 50-75 (50=straight, 75=heavy swing)
 
     Arp(Midi& midi);
 
@@ -69,6 +70,7 @@ class Arp {
     void adjustGenerator(int8_t delta);
     void adjustLength(int8_t delta);
     void adjustChannel(int8_t delta);
+    void adjustSwing(int8_t delta);
     uint8_t getBpm() const { return _bpm; }
     bool isPaused() const { return _paused; }
 

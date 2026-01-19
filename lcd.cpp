@@ -65,6 +65,7 @@ Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) 
   _last_octave_range = 255;
   _last_density = 0;
   _last_channel = 255;
+  _last_swing = 0;
   _last_edit_note = -128;
   _last_edit_mod = -128;
   _last_edit_submode = 255;
@@ -92,6 +93,7 @@ void Lcd::refresh(unsigned long now) {
       _arp.generator == _last_generator &&
       _arp.getBpm() == _last_bpm &&
       _arp.channel == _last_channel &&
+      _arp.swing == _last_swing &&
       _arp.root_note == _last_root_note &&
       _arp.scale == _last_scale &&
       _arp.octaveRange == _last_octave_range &&
@@ -109,6 +111,7 @@ void Lcd::refresh(unsigned long now) {
   _last_generator = _arp.generator;
   _last_bpm = _arp.getBpm();
   _last_channel = _arp.channel;
+  _last_swing = _arp.swing;
   _last_root_note = _arp.root_note;
   _last_scale = _arp.scale;
   _last_octave_range = _arp.octaveRange;
@@ -124,12 +127,11 @@ void Lcd::refresh(unsigned long now) {
 
   // Draw header text (inverted)
   u8g2.setDrawColor(0);
-  u8g2.drawStr(2, 10, "arpM");
 
-  // Draw channel next to arpM (highlight if selected)
+  // Draw channel on the left (highlight if selected)
   char ch_str[5];
   snprintf(ch_str, sizeof(ch_str), "CH%d", _arp.channel + 1);
-  uint8_t ch_x = 30;
+  uint8_t ch_x = 2;
   if (_selection == SEL_CHANNEL) {
     uint8_t ch_width = u8g2.getStrWidth(ch_str);
     u8g2.setDrawColor(0);
@@ -139,6 +141,21 @@ void Lcd::refresh(unsigned long now) {
     u8g2.setDrawColor(0);
   } else {
     u8g2.drawStr(ch_x, 10, ch_str);
+  }
+
+  // Draw swing after channel (highlight if selected)
+  char sw_str[5];
+  snprintf(sw_str, sizeof(sw_str), "S%d", _arp.swing);
+  uint8_t sw_x = 28;
+  if (_selection == SEL_SWING) {
+    uint8_t sw_width = u8g2.getStrWidth(sw_str);
+    u8g2.setDrawColor(0);
+    u8g2.drawBox(sw_x - 2, 1, sw_width + 4, 10);
+    u8g2.setDrawColor(1);
+    u8g2.drawStr(sw_x, 10, sw_str);
+    u8g2.setDrawColor(0);
+  } else {
+    u8g2.drawStr(sw_x, 10, sw_str);
   }
 
   if (_arp.editMode) {

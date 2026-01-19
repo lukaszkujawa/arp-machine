@@ -25,6 +25,7 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   generator = GEN_DEFAULT;  // Default generator
   length = 64;  // Default full sequence length
   channel = 0;  // Default MIDI channel 1 (0-indexed)
+  swing = 50;   // Default no swing (straight timing)
   editMode = false;  // Start in normal mode
   editStep = 0;  // Edit cursor at step 0
   editSubMode = EDIT_SEQUENCE;  // Default to sequence navigation
@@ -130,6 +131,13 @@ void Arp::adjustChannel(int8_t delta) {
   _midi.setChannel(channel);
 }
 
+void Arp::adjustSwing(int8_t delta) {
+  int8_t newSwing = swing + delta;
+  if (newSwing < 50) newSwing = 50;
+  if (newSwing > 75) newSwing = 75;
+  swing = (uint8_t)newSwing;
+}
+
 void Arp::_update_bpm(uint8_t bpm) {
   _bpm = bpm;
   _note_delays_ms = 60000000UL / bpm / 4;
@@ -217,7 +225,15 @@ void Arp::tick(unsigned long now) {
       _next_note_off = now + gate;
     }
 
-    _next_note_on = now + _note_delays_ms;
+    // Apply swing: even steps get longer delay, odd steps get shorter
+    // At swing=50: equal spacing. At swing=75: triplet feel
+    unsigned long step_delay;
+    if (x % 2 == 0) {
+      step_delay = (swing * 2UL * _note_delays_ms) / 100;
+    } else {
+      step_delay = ((100 - swing) * 2UL * _note_delays_ms) / 100;
+    }
+    _next_note_on = now + step_delay;
     x = (x + 1) % length;
   }
 
