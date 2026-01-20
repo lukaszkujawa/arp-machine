@@ -27,6 +27,7 @@ A hardware MIDI arpeggiator built on the ESP8266 microcontroller. Generates rhyt
 | Rotary Encoder | With push button (e.g., KY-040) |
 | 3x Buttons | Momentary push buttons |
 | MIDI Output | Serial TX to MIDI DIN circuit |
+| Resistors | 2x 220Ohm |
 
 ### Pin Configuration
 
@@ -273,3 +274,4 @@ Feel free to submit issues and pull requests. Key areas for contribution:
 ## License
 
 MIT License - See LICENSE file for details.
+
