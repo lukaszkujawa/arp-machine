@@ -68,6 +68,15 @@ void Arp::regenerate() {
   x = 0;  // Reset step position
 }
 
+void Arp::clearSequence() {
+  for (uint8_t i = 0; i < 64; i++) {
+    steps[i] = 0;
+    steps_div[i] = DIV_1;
+    steps_cond[i] = COND_ALWAYS;
+  }
+  x = 0;  // Reset step position
+}
+
 void Arp::togglePause() {
   _paused = !_paused;
   if (_paused && _note_playing > 0) {

@@ -23,6 +23,7 @@ const uint8_t BTN_REGEN = 14;     // Regenerate sequence
 // Timing
 const uint32_t BTN_DEBOUNCE_MS = 200;
 const uint32_t ENC_DEBOUNCE_US = 1500;  // Microsecond debounce for encoder
+const uint32_t LONG_PRESS_MS = 3000;    // Long press threshold for clear sequence
 
 // Encoder state - quadrature decoder
 uint8_t encState = 0;           // 2-bit state: (CLK << 1) | DT
@@ -47,12 +48,11 @@ volatile uint8_t pendingMask = 0;
 uint8_t lastEncBtn = HIGH;
 uint32_t lastEncBtnMs = 0;
 
-void IRAM_ATTR isrRegen() {
-  uint32_t now = millis();
-  if (now - lastIsrMs[0] < BTN_DEBOUNCE_MS) return;
-  lastIsrMs[0] = now;
-  pendingMask |= 0x01;
-}
+// Regen button polling state (for long-press detection)
+uint8_t lastRegenBtn = HIGH;
+uint32_t regenPressStartMs = 0;
+uint32_t regenLastChangeMs = 0;
+bool regenLongPressTriggered = false;
 
 void IRAM_ATTR isrPause() {
   uint32_t now = millis();
@@ -143,19 +143,47 @@ void handleEncButton() {
   lastEncBtnMs = now;
 }
 
+void handleRegenButton() {
+  uint8_t btn = digitalRead(BTN_REGEN);
+  uint32_t now = millis();
+
+  // Debounce: ignore changes within debounce window
+  if (btn != lastRegenBtn && (now - regenLastChangeMs) < BTN_DEBOUNCE_MS) {
+    return;
+  }
+
+  if (btn == LOW && lastRegenBtn == HIGH) {
+    // Button just pressed - start tracking
+    regenPressStartMs = now;
+    regenLastChangeMs = now;
+    regenLongPressTriggered = false;
+  } else if (btn == LOW) {
+    // Button held down - check for long press
+    if (!regenLongPressTriggered && (now - regenPressStartMs >= LONG_PRESS_MS)) {
+      // Long press detected - clear sequence
+      arp.clearSequence();
+      regenLongPressTriggered = true;
+    }
+  } else if (btn == HIGH && lastRegenBtn == LOW) {
+    // Button released
+    regenLastChangeMs = now;
+    if (!regenLongPressTriggered) {
+      // Short press - regenerate or cycle edit sub-mode
+      if (arp.editMode) {
+        arp.cycleEditSubMode();
+      } else {
+        arp.regenerate();
+      }
+    }
+  }
+
+  lastRegenBtn = btn;
+}
+
 void handleButtons() {
   uint8_t mask = pendingMask;
   if (!mask) return;
 
-  if (mask & 0x01) {
-    pendingMask &= ~0x01;
-    if (arp.editMode) {
-      // In edit mode, cycle through sub-modes (sequence -> note -> mode -> sequence)
-      arp.cycleEditSubMode();
-    } else {
-      arp.regenerate();
-    }
-  }
   if (mask & 0x02) {
     pendingMask &= ~0x02;
     arp.togglePause();
@@ -196,7 +224,6 @@ void setup() {
   pinMode(BTN_SWITCH, INPUT_PULLUP);
   pinMode(BTN_REGEN, INPUT_PULLUP);
 
-  attachInterrupt(digitalPinToInterrupt(BTN_REGEN), isrRegen, FALLING);
   attachInterrupt(digitalPinToInterrupt(BTN_PAUSE), isrPause, FALLING);
   attachInterrupt(digitalPinToInterrupt(BTN_SWITCH), isrSwitch, FALLING);
 }
@@ -205,6 +232,7 @@ void loop() {
   unsigned long now = micros();
   handleEncoder();
   handleEncButton();
+  handleRegenButton();
   handleButtons();
   arp.tick(now);
   lcd.refresh(now);

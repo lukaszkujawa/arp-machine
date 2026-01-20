@@ -68,6 +68,7 @@ class Arp {
 
     void tick(unsigned long now);
     void regenerate();
+    void clearSequence();
     void togglePause();
     void adjustBpm(int8_t delta);
     void adjustRootNote(int8_t delta);
