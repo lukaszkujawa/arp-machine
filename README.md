@@ -2,6 +2,8 @@
 
 A hardware MIDI arpeggiator built on the ESP8266 microcontroller. Generates rhythmic note patterns and outputs standard MIDI messages over serial at 31250 baud.
 
+![ARP Machine](./img/machine.jpg)
+
 ## Features
 
 - **4 simultaneous sequencers** on independent MIDI channels (1-16)
