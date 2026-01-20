@@ -208,36 +208,6 @@ void Lcd::refresh(unsigned long now) {
   // Draw header text (inverted)
   u8g2.setDrawColor(0);
 
-  // Draw channel on the left (highlight if selected)
-  char ch_str[5];
-  snprintf(ch_str, sizeof(ch_str), "CH%d", _arp.channel + 1);
-  uint8_t ch_x = 2;
-  if (_selection == SEL_CHANNEL) {
-    uint8_t ch_width = u8g2.getStrWidth(ch_str);
-    u8g2.setDrawColor(0);
-    u8g2.drawBox(ch_x - 2, 1, ch_width + 4, 10);
-    u8g2.setDrawColor(1);
-    u8g2.drawStr(ch_x, 10, ch_str);
-    u8g2.setDrawColor(0);
-  } else {
-    u8g2.drawStr(ch_x, 10, ch_str);
-  }
-
-  // Draw swing after channel (highlight if selected)
-  char sw_str[5];
-  snprintf(sw_str, sizeof(sw_str), "S%d", _arp.swing);
-  uint8_t sw_x = 28;
-  if (_selection == SEL_SWING) {
-    uint8_t sw_width = u8g2.getStrWidth(sw_str);
-    u8g2.setDrawColor(0);
-    u8g2.drawBox(sw_x - 2, 1, sw_width + 4, 10);
-    u8g2.setDrawColor(1);
-    u8g2.drawStr(sw_x, 10, sw_str);
-    u8g2.setDrawColor(0);
-  } else {
-    u8g2.drawStr(sw_x, 10, sw_str);
-  }
-
   if (_arp.editMode) {
     u8g2.setDrawColor(1);
     u8g2.drawFrame( 0, 30, 127, 34 );
@@ -246,19 +216,18 @@ void Lcd::refresh(unsigned long now) {
 
   // Draw tempo indicator circle (blinks on quarter notes)
   if (_arp.x % 4 == 0) {
-    u8g2.drawDisc(102, 6, 3);  // Filled circle when on beat
+    u8g2.drawDisc(122, 6, 3);  // Filled circle when on beat
   } else {
-    u8g2.drawCircle(102, 6, 3);  // Empty circle when off beat
+    u8g2.drawCircle(122, 6, 3);  // Empty circle when off beat
   }
 
-  // Draw BPM on right side (highlight if selected)
+  // Draw BPM before tempo circle (highlight if selected)
   char bpm_str[8];
   snprintf(bpm_str, sizeof(bpm_str), "%d", _arp.getBpm());
   uint8_t bpm_width = u8g2.getStrWidth(bpm_str);
-  uint8_t bpm_x = 126 - bpm_width;
+  uint8_t bpm_x = 117 - bpm_width;
 
   if (_selection == SEL_BPM) {
-    // Draw white box behind BPM to highlight it
     u8g2.setDrawColor(0);
     u8g2.drawBox(bpm_x - 2, 1, bpm_width + 4, 10);
     u8g2.setDrawColor(1);
@@ -270,7 +239,7 @@ void Lcd::refresh(unsigned long now) {
   // Draw generator before BPM (highlight if selected)
   const char* gen_str = GEN_NAMES[_arp.generator];
   uint8_t gen_width = u8g2.getStrWidth(gen_str);
-  uint8_t gen_x = bpm_x - gen_width - 14;
+  uint8_t gen_x = bpm_x - gen_width - 6;
 
   u8g2.setDrawColor(0);
   if (_selection == SEL_GENERATOR) {
@@ -294,6 +263,36 @@ void Lcd::refresh(unsigned long now) {
     u8g2.drawStr(len_x, 10, len_str);
   } else {
     u8g2.drawStr(len_x, 10, len_str);
+  }
+
+  // Draw swing before length (highlight if selected)
+  char sw_str[5];
+  snprintf(sw_str, sizeof(sw_str), "S%d", _arp.swing);
+  uint8_t sw_width = u8g2.getStrWidth(sw_str);
+  uint8_t sw_x = len_x - sw_width - 6;
+
+  u8g2.setDrawColor(0);
+  if (_selection == SEL_SWING) {
+    u8g2.drawBox(sw_x - 2, 1, sw_width + 4, 10);
+    u8g2.setDrawColor(1);
+    u8g2.drawStr(sw_x, 10, sw_str);
+  } else {
+    u8g2.drawStr(sw_x, 10, sw_str);
+  }
+
+  // Draw channel before swing (highlight if selected)
+  char ch_str[5];
+  snprintf(ch_str, sizeof(ch_str), "CH%d", _arp.channel + 1);
+  uint8_t ch_width = u8g2.getStrWidth(ch_str);
+  uint8_t ch_x = sw_x - ch_width - 6;
+
+  u8g2.setDrawColor(0);
+  if (_selection == SEL_CHANNEL) {
+    u8g2.drawBox(ch_x - 2, 1, ch_width + 4, 10);
+    u8g2.setDrawColor(1);
+    u8g2.drawStr(ch_x, 10, ch_str);
+  } else {
+    u8g2.drawStr(ch_x, 10, ch_str);
   }
 
   u8g2.setDrawColor(1);
