@@ -205,7 +205,10 @@ void handleButtons() {
 
   if (mask & 0x02) {
     pendingMask &= ~0x02;
-    arp.togglePause();
+    // Pause/unpause all sequencers
+    for (uint8_t i = 0; i < 4; i++) {
+      arps[i]->togglePause();
+    }
   }
   if (mask & 0x04) {
     pendingMask &= ~0x04;
