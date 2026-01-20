@@ -4,14 +4,17 @@ A hardware MIDI arpeggiator built on the ESP8266 microcontroller. Generates rhyt
 
 ## Features
 
-- **64-step sequencer** with 4 rows of 16 steps, adjustable length (1-64)
+- **4 simultaneous sequencers** on independent MIDI channels (1-16)
+- **64-step sequences** with 4 rows of 16 steps, adjustable length (1-64)
 - **5 musical scales**: Major, Minor, Dorian, Pentatonic, Harmonic Minor
-- **Adjustable parameters**: BPM (40-240), root note, scale, octave range, note density
-- **Step modifiers**: Normal, Ratchet x2, Ratchet x3, Half-time (1:2)
-- **Sequence editing**: Full control over step notes and modifiers
+- **Adjustable parameters**: BPM (40-240), root note, scale, octave range, note density, swing
+- **Per-step division**: x1 (normal), x2 (ratchet), x3 (ratchet) for rhythmic variation
+- **Per-step trigger conditions**: Always, 1:2, 1:3, 1:4, or probability-based (10%, 25%, 50%, 75%)
+- **Sequence editing**: Full control over step notes, division, and trigger conditions
 - **Multiple generators**: Default rhythmic patterns, Chord arpeggios
 - **Real-time display**: 128x64 OLED shows all parameters and step grid
 - **Microsecond-precision timing** for accurate tempo at high speeds
+- **Global pause/resume** controls all 4 sequencers simultaneously
 
 ## Hardware Requirements
 
@@ -52,6 +55,9 @@ Press **BTN_SWITCH** to cycle through parameters:
 
 | Selection | Encoder Action |
 |-----------|----------------|
+| Page | Switch between sequencers 1-4 |
+| Channel | Set MIDI channel (1-16) for current sequencer |
+| Swing | Adjust swing amount (50-75%, 50=straight) |
 | Length | Adjust sequence length (1-64 steps) |
 | Generator | Switch pattern generator (D=Default, C=Chord) |
 | BPM | Adjust tempo (40-240 BPM) |
@@ -69,27 +75,42 @@ When in **Edit** mode, press **BTN_REGEN** to cycle through sub-modes:
 |----------|---------|----------------|
 | Sequence | Neither highlighted | Move cursor through steps |
 | Note | "Note:" highlighted | Change note pitch (octave 2-4, follows scale) |
-| Mode | "Mode:" highlighted | Change step modifier (N, R2, R3, 1:2) |
+| Div | "Div:" highlighted | Change step division (x1, x2, x3) |
+| Cond | "Cond:" highlighted | Change trigger condition |
 
 - **Press encoder**: Toggle step on/off (in Sequence sub-mode)
+- **Long-press BTN_REGEN** (3 seconds): Clear entire sequence
 - Enabling a step generates a random note following current root, scale, and octave settings
 - Edit cursor always starts at step 0
 
-### Step Modifiers
+### Step Division (Ratchets)
 
-| Modifier | Name | Effect |
+| Division | Name | Effect |
 |----------|------|--------|
-| N | Normal | Single note trigger |
-| R2 | Ratchet x2 | Two 1/32 notes within the 1/16 step |
-| R3 | Ratchet x3 | Three notes within the 1/16 step |
-| 1:2 | Half-time | Note triggers every other time |
+| x1 | Normal | Single note trigger per step |
+| x2 | Ratchet x2 | Two 1/32 notes within the 1/16 step |
+| x3 | Ratchet x3 | Three notes within the 1/16 step |
+
+### Step Trigger Conditions
+
+| Condition | Name | Effect |
+|-----------|------|--------|
+| Always | - | Note always triggers |
+| 1:2 | Half-time | Triggers every 2nd time |
+| 1:3 | Third-time | Triggers every 3rd time |
+| 1:4 | Quarter-time | Triggers every 4th time |
+| 10% | Probability | 10% chance to trigger |
+| 25% | Probability | 25% chance to trigger |
+| 50% | Probability | 50% chance to trigger |
+| 75% | Probability | 75% chance to trigger |
 
 ### Other Controls
 
 | Button | Action |
 |--------|--------|
-| BTN_PAUSE | Pause/resume playback |
+| BTN_PAUSE | Pause/resume playback (all 4 sequencers) |
 | BTN_REGEN | Generate new sequence (or cycle edit sub-mode when editing) |
+| BTN_REGEN (long) | Clear current sequence (hold 3 seconds) |
 
 ## Building & Uploading
 
@@ -127,31 +148,37 @@ arp-machine/
 ### Component Overview
 
 #### `arp-machine.ino` - Main Controller
-- Initializes all components
-- Handles rotary encoder with edge detection and debouncing
+- Initializes all components including 4 independent sequencer instances
+- Handles rotary encoder with quadrature decoding and acceleration
 - Manages button interrupts (ISR) for responsive input
-- Runs main loop: input → tick → display
+- Runs main loop: input → tick all sequencers → display
 
 **Key functions:**
-- `handleEncoder()` - Rotary encoder rotation (polling, falling-edge detection)
+- `handleEncoder()` - Rotary encoder with quadrature lookup table and acceleration
 - `handleEncButton()` - Encoder button (polling with debounce)
+- `handleRegenButton()` - Regen button with long-press detection for sequence clear
 - `handleButtons()` - Process interrupt flags from ISRs
-- `loop()` - Main event loop at ~µs resolution
+- `loop()` - Main event loop at ~µs resolution, ticks all 4 sequencers
 
 #### `arp.h / arp.cpp` - Arpeggiator Engine
-- 64-step pattern buffer with note values and modifiers
+- 64-step pattern buffer with note values, division, and trigger conditions
 - Microsecond timing using `micros()` for note on/off scheduling
 - Scale-aware note generation with configurable density
-- Step modifiers for ratchets and half-time effects
-- Edit mode with sub-modes for sequence, note, and modifier editing
+- Per-step division (ratchets x1/x2/x3) and trigger conditions (always, divisor, probability)
+- Edit mode with sub-modes for sequence, note, division, and condition editing
+- Per-sequencer MIDI channel and swing settings
 
 **Key members:**
 - `steps[64]` - Note values (0 = rest, >0 = MIDI note number)
-- `steps_mods[64]` - Step modifiers (N, R2, R3, 1:2)
+- `steps_div[64]` - Step division/ratchet (x1, x2, x3)
+- `steps_cond[64]` - Step trigger condition (always, 1:2, 1:3, 1:4, probability)
+- `channel` - MIDI channel (0-15, displayed as 1-16)
+- `swing` - Swing amount (50-75%)
 - `x` - Current playhead position
 - `editMode`, `editStep`, `editSubMode` - Edit state
 - `_next_note_on` / `_next_note_off` - Scheduled timing thresholds
 - `_ratchet_count`, `_ratchet_interval` - Ratchet playback state
+- `_step_trigger_counter[64]` - Counter per step for divisor-based conditions
 
 **Timing system:**
 ```cpp
@@ -165,7 +192,7 @@ _ratchet_gate = _ratchet_interval / 2;    // 1/64 note (50% gate)
 
 #### `midi.h / midi.cpp` - MIDI Output
 - Serial communication at 31250 baud (MIDI standard)
-- Channel 1 output
+- Configurable MIDI channel (1-16) per sequencer
 - Note On/Off with velocity support
 
 **API:**
@@ -183,7 +210,7 @@ void allNotesOff();
 **Display layout (normal mode):**
 ```
 ┌────────────────────────────┐
-│ arpM      64 D       ● 120 │  ← Header (title, length, generator, beat, BPM)
+│ 1 CH1 Sw50 64 D      ● 120 │  ← Header (page, channel, swing, length, generator, beat, BPM)
 │ C  Major  Oct2-3      45%  │  ← Settings row (root, scale, octave, density)
 │ ■■□■ ■□■□ ■■□■ □■□■       │  ← Step grid (4 rows × 16 cols)
 │ ■■□■ ■□■□ ■■□■ □■□■       │
@@ -195,8 +222,8 @@ void allNotesOff();
 **Display layout (edit mode):**
 ```
 ┌────────────────────────────┐
-│ arpM      64 D       ● 120 │  ← Header
-│ Note: C3      Mode: N      │  ← Edit info (note pitch, step modifier)
+│ 1 CH1 Sw50 64 D      ● 120 │  ← Header
+│ Note:C3  Div:x1  Cond:1:2  │  ← Edit info (note, division, condition)
 │ ■■□■ ■□■□ ■■□■ □■□■       │  ← Step grid with edit cursor
 │ ■■□■ ■□■□ ■■□■ □■□■       │
 │ ■■□■ ■□■□ ■■□■ □■□■       │
@@ -208,16 +235,18 @@ void allNotesOff();
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Buttons   │────▶│  Main Loop  │────▶│     Arp     │
-│   Encoder   │     │ (ino file)  │     │   Engine    │
+│   Buttons   │────▶│  Main Loop  │────▶│  Arp 1-4    │
+│   Encoder   │     │ (ino file)  │     │  Engines    │
 └─────────────┘     └──────┬──────┘     └──────┬──────┘
                            │                   │
                            ▼                   ▼
                     ┌─────────────┐     ┌─────────────┐
                     │     LCD     │     │    MIDI     │
-                    │   Display   │     │   Output    │
+                    │   Display   │     │  CH 1-16    │
                     └─────────────┘     └─────────────┘
 ```
+
+All 4 sequencer engines run simultaneously, each sending to its configured MIDI channel.
 
 ### Timing Architecture
 
