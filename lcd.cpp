@@ -60,7 +60,8 @@ static const char* condToString(uint8_t cond) {
   return COND_NAMES[cond];
 }
 
-Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) {
+Lcd::Lcd(Arp* arp, MenuSelection& selection, uint8_t& currentPage)
+    : _arp(arp), _selection(selection), _currentPage(currentPage) {
   // Initialize all cached state to invalid/different values to force initial draw
   _last_step = 255;
   _last_edit_step = 255;
@@ -79,6 +80,11 @@ Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) 
   _last_edit_div = 255;
   _last_edit_cond = 255;
   _last_edit_submode = 255;
+  _last_page = 255;
+}
+
+void Lcd::setArp(Arp* arp) {
+  _arp = arp;
 }
 
 void Lcd::setup() {
@@ -157,48 +163,50 @@ void Lcd::showIntro() {
 
 void Lcd::refresh(unsigned long now) {
   // Get current edit step values for comparison
-  int8_t current_edit_note = _arp.editMode ? _arp.steps[_arp.editStep] : 0;
-  uint8_t current_edit_div = _arp.editMode ? _arp.steps_div[_arp.editStep] : 0;
-  uint8_t current_edit_cond = _arp.editMode ? _arp.steps_cond[_arp.editStep] : 0;
-  uint8_t current_edit_submode = _arp.editMode ? _arp.editSubMode : 0;
+  int8_t current_edit_note = _arp->editMode ? _arp->steps[_arp->editStep] : 0;
+  uint8_t current_edit_div = _arp->editMode ? _arp->steps_div[_arp->editStep] : 0;
+  uint8_t current_edit_cond = _arp->editMode ? _arp->steps_cond[_arp->editStep] : 0;
+  uint8_t current_edit_submode = _arp->editMode ? _arp->editSubMode : 0;
 
   // Redraw when any displayed state changes
-  if (_arp.x == _last_step &&
+  if (_arp->x == _last_step &&
       _selection == _last_selection &&
-      _arp.editMode == _last_edit_mode &&
-      _arp.editStep == _last_edit_step &&
-      _arp.length == _last_length &&
-      _arp.generator == _last_generator &&
-      _arp.getBpm() == _last_bpm &&
-      _arp.channel == _last_channel &&
-      _arp.swing == _last_swing &&
-      _arp.root_note == _last_root_note &&
-      _arp.scale == _last_scale &&
-      _arp.octaveRange == _last_octave_range &&
-      _arp.density == _last_density &&
+      _arp->editMode == _last_edit_mode &&
+      _arp->editStep == _last_edit_step &&
+      _arp->length == _last_length &&
+      _arp->generator == _last_generator &&
+      _arp->getBpm() == _last_bpm &&
+      _arp->channel == _last_channel &&
+      _arp->swing == _last_swing &&
+      _arp->root_note == _last_root_note &&
+      _arp->scale == _last_scale &&
+      _arp->octaveRange == _last_octave_range &&
+      _arp->density == _last_density &&
       current_edit_note == _last_edit_note &&
       current_edit_div == _last_edit_div &&
       current_edit_cond == _last_edit_cond &&
-      current_edit_submode == _last_edit_submode) {
+      current_edit_submode == _last_edit_submode &&
+      _currentPage == _last_page) {
     return;
   }
-  _last_step = _arp.x;
+  _last_step = _arp->x;
   _last_selection = _selection;
-  _last_edit_mode = _arp.editMode;
-  _last_edit_step = _arp.editStep;
-  _last_length = _arp.length;
-  _last_generator = _arp.generator;
-  _last_bpm = _arp.getBpm();
-  _last_channel = _arp.channel;
-  _last_swing = _arp.swing;
-  _last_root_note = _arp.root_note;
-  _last_scale = _arp.scale;
-  _last_octave_range = _arp.octaveRange;
-  _last_density = _arp.density;
+  _last_edit_mode = _arp->editMode;
+  _last_edit_step = _arp->editStep;
+  _last_length = _arp->length;
+  _last_generator = _arp->generator;
+  _last_bpm = _arp->getBpm();
+  _last_channel = _arp->channel;
+  _last_swing = _arp->swing;
+  _last_root_note = _arp->root_note;
+  _last_scale = _arp->scale;
+  _last_octave_range = _arp->octaveRange;
+  _last_density = _arp->density;
   _last_edit_note = current_edit_note;
   _last_edit_div = current_edit_div;
   _last_edit_cond = current_edit_cond;
   _last_edit_submode = current_edit_submode;
+  _last_page = _currentPage;
 
   u8g2.clearBuffer();
 
@@ -208,14 +216,30 @@ void Lcd::refresh(unsigned long now) {
   // Draw header text (inverted)
   u8g2.setDrawColor(0);
 
-  if (_arp.editMode) {
+  if (_arp->editMode) {
     u8g2.setDrawColor(1);
     u8g2.drawFrame( 0, 30, 127, 34 );
     u8g2.setDrawColor(0);
   }
 
+  // Draw page indicator on the left (highlight if selected)
+  char page_str[4];
+  snprintf(page_str, sizeof(page_str), "%d/4", _currentPage + 1);
+  uint8_t page_x = 2;
+
+  if (_selection == SEL_PAGE) {
+    uint8_t page_width = u8g2.getStrWidth(page_str);
+    u8g2.setDrawColor(0);
+    u8g2.drawBox(page_x - 2, 1, page_width + 4, 10);
+    u8g2.setDrawColor(1);
+    u8g2.drawStr(page_x, 10, page_str);
+    u8g2.setDrawColor(0);
+  } else {
+    u8g2.drawStr(page_x, 10, page_str);
+  }
+
   // Draw tempo indicator circle (blinks on quarter notes)
-  if (_arp.x % 4 == 0) {
+  if (_arp->x % 4 == 0) {
     u8g2.drawDisc(122, 6, 3);  // Filled circle when on beat
   } else {
     u8g2.drawCircle(122, 6, 3);  // Empty circle when off beat
@@ -223,7 +247,7 @@ void Lcd::refresh(unsigned long now) {
 
   // Draw BPM before tempo circle (highlight if selected)
   char bpm_str[8];
-  snprintf(bpm_str, sizeof(bpm_str), "%d", _arp.getBpm());
+  snprintf(bpm_str, sizeof(bpm_str), "%d", _arp->getBpm());
   uint8_t bpm_width = u8g2.getStrWidth(bpm_str);
   uint8_t bpm_x = 117 - bpm_width;
 
@@ -237,7 +261,7 @@ void Lcd::refresh(unsigned long now) {
   }
 
   // Draw generator before BPM (highlight if selected)
-  const char* gen_str = GEN_NAMES[_arp.generator];
+  const char* gen_str = GEN_NAMES[_arp->generator];
   uint8_t gen_width = u8g2.getStrWidth(gen_str);
   uint8_t gen_x = bpm_x - gen_width - 6;
 
@@ -252,7 +276,7 @@ void Lcd::refresh(unsigned long now) {
 
   // Draw length before generator (highlight if selected)
   char len_str[4];
-  snprintf(len_str, sizeof(len_str), "%d", _arp.length);
+  snprintf(len_str, sizeof(len_str), "%d", _arp->length);
   uint8_t len_width = u8g2.getStrWidth(len_str);
   uint8_t len_x = gen_x - len_width - 6;
 
@@ -267,7 +291,7 @@ void Lcd::refresh(unsigned long now) {
 
   // Draw swing before length (highlight if selected)
   char sw_str[5];
-  snprintf(sw_str, sizeof(sw_str), "S%d", _arp.swing);
+  snprintf(sw_str, sizeof(sw_str), "S%d", _arp->swing);
   uint8_t sw_width = u8g2.getStrWidth(sw_str);
   uint8_t sw_x = len_x - sw_width - 6;
 
@@ -282,7 +306,7 @@ void Lcd::refresh(unsigned long now) {
 
   // Draw channel before swing (highlight if selected)
   char ch_str[5];
-  snprintf(ch_str, sizeof(ch_str), "CH%d", _arp.channel + 1);
+  snprintf(ch_str, sizeof(ch_str), "CH%d", _arp->channel + 1);
   uint8_t ch_width = u8g2.getStrWidth(ch_str);
   uint8_t ch_x = sw_x - ch_width - 6;
 
@@ -298,19 +322,19 @@ void Lcd::refresh(unsigned long now) {
   u8g2.setDrawColor(1);
 
   // Draw settings row OR edit info box
-  if (_arp.editMode) {
+  if (_arp->editMode) {
     // Draw edit info box (covers settings row area)
     char note_buf[6];
-    midiNoteToString(_arp.steps[_arp.editStep], note_buf, sizeof(note_buf));
-    const char* div_str = divToString(_arp.steps_div[_arp.editStep]);
-    const char* cond_str = condToString(_arp.steps_cond[_arp.editStep]);
+    midiNoteToString(_arp->steps[_arp->editStep], note_buf, sizeof(note_buf));
+    const char* div_str = divToString(_arp->steps_div[_arp->editStep]);
+    const char* cond_str = condToString(_arp->steps_cond[_arp->editStep]);
 
     // Draw box background
     u8g2.drawFrame(0, 17, 127, 13);
 
     // Layout: Note (left) | Div (center) | Cond (right)
     // Draw note label and value (highlight if EDIT_NOTE sub-mode)
-    if (_arp.editSubMode == EDIT_NOTE) {
+    if (_arp->editSubMode == EDIT_NOTE) {
       u8g2.drawBox(2, 17, 38, 12);
       u8g2.setDrawColor(0);
     }
@@ -319,7 +343,7 @@ void Lcd::refresh(unsigned long now) {
     u8g2.setDrawColor(1);
 
     // Draw div label and value (highlight if EDIT_DIV sub-mode)
-    if (_arp.editSubMode == EDIT_DIV) {
+    if (_arp->editSubMode == EDIT_DIV) {
       u8g2.drawBox(42, 17, 32, 12);
       u8g2.setDrawColor(0);
     }
@@ -328,7 +352,7 @@ void Lcd::refresh(unsigned long now) {
     u8g2.setDrawColor(1);
 
     // Draw cond label and value (highlight if EDIT_COND sub-mode)
-    if (_arp.editSubMode == EDIT_COND) {
+    if (_arp->editSubMode == EDIT_COND) {
       u8g2.drawBox(76, 17, 48, 12);
       u8g2.setDrawColor(0);
     }
@@ -341,7 +365,7 @@ void Lcd::refresh(unsigned long now) {
     char buf[12];
 
     // Root note
-    snprintf(buf, sizeof(buf), "%s", NOTE_NAMES[_arp.root_note]);
+    snprintf(buf, sizeof(buf), "%s", NOTE_NAMES[_arp->root_note]);
     if (_selection == SEL_ROOT) {
       uint8_t w = u8g2.getStrWidth(buf);
       u8g2.drawBox(xPos - 1, 17, w + 2, 12);
@@ -352,7 +376,7 @@ void Lcd::refresh(unsigned long now) {
     xPos += u8g2.getStrWidth(buf) + 4;
 
     // Scale
-    snprintf(buf, sizeof(buf), "%s", SCALE_NAMES[_arp.scale]);
+    snprintf(buf, sizeof(buf), "%s", SCALE_NAMES[_arp->scale]);
     if (_selection == SEL_SCALE) {
       uint8_t w = u8g2.getStrWidth(buf);
       u8g2.drawBox(xPos - 1, 17, w + 2, 12);
@@ -363,7 +387,7 @@ void Lcd::refresh(unsigned long now) {
     xPos += u8g2.getStrWidth(buf) + 4;
 
     // Octave range
-    snprintf(buf, sizeof(buf), "Oct%s", OCT_RANGE_NAMES[_arp.octaveRange]);
+    snprintf(buf, sizeof(buf), "Oct%s", OCT_RANGE_NAMES[_arp->octaveRange]);
     if (_selection == SEL_OCTAVE) {
       uint8_t w = u8g2.getStrWidth(buf);
       u8g2.drawBox(xPos - 1, 17, w + 2, 12);
@@ -374,7 +398,7 @@ void Lcd::refresh(unsigned long now) {
 
     // Draw density on the right
     char density_str[8];
-    snprintf(density_str, sizeof(density_str), "%d%%", _arp.density);
+    snprintf(density_str, sizeof(density_str), "%d%%", _arp->density);
     uint8_t density_width = u8g2.getStrWidth(density_str);
     uint8_t density_x = 126 - density_width;
     if (_selection == SEL_DENSITY) {
@@ -395,15 +419,15 @@ void Lcd::refresh(unsigned long now) {
       uint8_t x = GRID_X_OFFSET + col * (STEP_WIDTH + STEP_GAP) + beat_gap;
       uint8_t y = GRID_Y_OFFSET + row * (STEP_HEIGHT + STEP_GAP);
 
-      bool is_disabled = (step_index >= _arp.length);
+      bool is_disabled = (step_index >= _arp->length);
 
       if (is_disabled) {
         // Disabled step: just a bottom line
         u8g2.drawHLine(x, y + STEP_HEIGHT - 1, STEP_WIDTH);
       } else {
-        bool has_note = (_arp.steps[step_index] > 0);
-        bool is_current = (step_index == _arp.x);
-        bool is_edit_cursor = (_arp.editMode && step_index == _arp.editStep);
+        bool has_note = (_arp->steps[step_index] > 0);
+        bool is_current = (step_index == _arp->x);
+        bool is_edit_cursor = (_arp->editMode && step_index == _arp->editStep);
 
         if (is_edit_cursor) {
           if (has_note) {

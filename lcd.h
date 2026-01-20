@@ -6,7 +6,7 @@
 class Arp;
 
 // Menu selection enum (must match arp-machine.ino)
-enum MenuSelection : uint8_t { SEL_CHANNEL = 0, SEL_SWING, SEL_LENGTH, SEL_GENERATOR, SEL_BPM, SEL_ROOT, SEL_SCALE, SEL_OCTAVE, SEL_DENSITY, SEL_EDIT, SEL_COUNT };
+enum MenuSelection : uint8_t { SEL_PAGE = 0, SEL_CHANNEL, SEL_SWING, SEL_LENGTH, SEL_GENERATOR, SEL_BPM, SEL_ROOT, SEL_SCALE, SEL_OCTAVE, SEL_DENSITY, SEL_EDIT, SEL_COUNT };
 
 /**
 Display used:
@@ -20,14 +20,16 @@ class Lcd {
 
   public:
 
-    Lcd(Arp& arp, MenuSelection& selection);
+    Lcd(Arp* arp, MenuSelection& selection, uint8_t& currentPage);
     void setup();
     void showIntro();
     void refresh(unsigned long now);
+    void setArp(Arp* arp);
 
   private:
-    Arp& _arp;
+    Arp* _arp;
     MenuSelection& _selection;
+    uint8_t& _currentPage;
 
     // Cached state for change detection
     uint8_t _last_step;
@@ -47,5 +49,6 @@ class Lcd {
     uint8_t _last_edit_div;
     uint8_t _last_edit_cond;
     uint8_t _last_edit_submode;
+    uint8_t _last_page;
 
 };

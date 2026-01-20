@@ -22,14 +22,32 @@ void Midi::noteOn(uint8_t note, uint8_t velocity) {
   sendByte(velocity & 0x7F);
 }
 
+void Midi::noteOn(uint8_t note, uint8_t velocity, uint8_t channel) {
+  sendByte(0x90 | (channel & 0x0F));
+  sendByte(note & 0x7F);
+  sendByte(velocity & 0x7F);
+}
+
 void Midi::noteOff(uint8_t note)  {
   sendByte(0x80 | _channel);
   sendByte(note & 0x7F);
   sendByte(0);
 }
 
+void Midi::noteOff(uint8_t note, uint8_t channel) {
+  sendByte(0x80 | (channel & 0x0F));
+  sendByte(note & 0x7F);
+  sendByte(0);
+}
+
 void Midi::allNotesOff() {
   sendByte(0xB0 | _channel);
+  sendByte(123); // CC 123 = all notes off
+  sendByte(0);
+}
+
+void Midi::allNotesOff(uint8_t channel) {
+  sendByte(0xB0 | (channel & 0x0F));
   sendByte(123); // CC 123 = all notes off
   sendByte(0);
 }

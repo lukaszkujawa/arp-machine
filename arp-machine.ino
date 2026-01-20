@@ -6,9 +6,20 @@
 #include "lcd.h"  // Includes MenuSelection enum
 
 Midi midi;
-Arp arp(midi);
-MenuSelection currentSelection = SEL_CHANNEL;
-Lcd lcd(arp, currentSelection);
+
+// 4 simultaneous sequencers
+Arp arp0(midi);
+Arp arp1(midi);
+Arp arp2(midi);
+Arp arp3(midi);
+Arp* arps[4] = {&arp0, &arp1, &arp2, &arp3};
+
+uint8_t currentPage = 0;
+MenuSelection currentSelection = SEL_PAGE;
+Lcd lcd(&arp0, currentSelection, currentPage);
+
+// Helper to get current arp
+#define arp (*arps[currentPage])
 
 // Rotary encoder pins
 const uint8_t ENC_CLK = 2;
@@ -100,6 +111,14 @@ void handleEncoder() {
   dir *= mult;
 
   switch (currentSelection) {
+    case SEL_PAGE: {
+      int8_t newPage = currentPage + (dir > 0 ? 1 : -1);
+      if (newPage < 0) newPage = 3;
+      if (newPage > 3) newPage = 0;
+      currentPage = newPage;
+      lcd.setArp(arps[currentPage]);
+      break;
+    }
     case SEL_CHANNEL:   arp.adjustChannel(dir); break;
     case SEL_SWING:     arp.adjustSwing(dir); break;
     case SEL_LENGTH:    arp.adjustLength(dir); break;
@@ -208,6 +227,15 @@ void setup() {
 
   pinMode(LED_BUILTIN, OUTPUT);
   midi.setup();
+
+  // Initialize 4 sequencers with different channels
+  // Arp 0: CH1 (default), has generated sequence
+  // Arps 1-3: CH2-4, empty sequences
+  for (uint8_t i = 1; i < 4; i++) {
+    arps[i]->channel = i;
+    arps[i]->clearSequence();
+  }
+
   lcd.setup();
   lcd.showIntro();
   delay(2000);
@@ -234,6 +262,11 @@ void loop() {
   handleEncButton();
   handleRegenButton();
   handleButtons();
-  arp.tick(now);
+
+  // Tick all 4 sequencers
+  for (uint8_t i = 0; i < 4; i++) {
+    arps[i]->tick(now);
+  }
+
   lcd.refresh(now);
 }

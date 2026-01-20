@@ -80,7 +80,7 @@ void Arp::clearSequence() {
 void Arp::togglePause() {
   _paused = !_paused;
   if (_paused && _note_playing > 0) {
-    _midi.noteOff(_note_playing);
+    _midi.noteOff(_note_playing, channel);
     _note_playing = 0;
   }
 }
@@ -142,7 +142,6 @@ void Arp::adjustChannel(int8_t delta) {
   if (newCh < 0) newCh = 15;
   if (newCh > 15) newCh = 0;
   channel = (uint8_t)newCh;
-  _midi.setChannel(channel);
 }
 
 void Arp::adjustSwing(int8_t delta) {
@@ -161,7 +160,7 @@ void Arp::_update_bpm(uint8_t bpm) {
 void Arp::tick(unsigned long now) {
   // Handle note off
   if(_note_playing > 0 && (long)(now - _next_note_off) >= 0) {
-    _midi.noteOff(_note_playing);
+    _midi.noteOff(_note_playing, channel);
     _note_playing = 0;
   }
 
@@ -169,7 +168,7 @@ void Arp::tick(unsigned long now) {
   if (_ratchet_count > 0 && _note_playing == 0 && (long)(now - _next_ratchet_on) >= 0) {
     _ratchet_count--;
     _note_playing = _ratchet_note;
-    _midi.noteOn(_note_playing, 100);
+    _midi.noteOn(_note_playing, 100, channel);
     _next_note_off = now + _ratchet_gate;
     _next_ratchet_on = now + _ratchet_interval;
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
@@ -236,7 +235,7 @@ void Arp::tick(unsigned long now) {
         _next_ratchet_on = now + _ratchet_interval;
       }
 
-      _midi.noteOn(_note_playing, 100);
+      _midi.noteOn(_note_playing, 100, channel);
       _next_note_off = now + gate;
     }
 
