@@ -44,7 +44,8 @@ class Lcd {
     uint8_t _last_channel;
     uint8_t _last_swing;
     int8_t _last_edit_note;
-    int8_t _last_edit_mod;
+    uint8_t _last_edit_div;
+    uint8_t _last_edit_cond;
     uint8_t _last_edit_submode;
 
 };

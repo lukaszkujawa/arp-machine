@@ -113,7 +113,8 @@ void handleEncoder() {
       switch (arp.editSubMode) {
         case EDIT_SEQUENCE: arp.moveEditCursor(dir); break;
         case EDIT_NOTE:     arp.adjustCurrentStepNote(dir); break;
-        case EDIT_MODE:     arp.adjustCurrentStepMod(dir); break;
+        case EDIT_DIV:      arp.adjustCurrentStepDiv(dir); break;
+        case EDIT_COND:     arp.adjustCurrentStepCond(dir); break;
       }
       break;
     default: break;

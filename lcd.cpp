@@ -42,13 +42,22 @@ static void midiNoteToString(int8_t note, char* buf, size_t bufSize) {
   snprintf(buf, bufSize, "%s%d", NOTE_NAMES[noteInOctave], octave);
 }
 
-// Step mod names
-static const char* MOD_NAMES[] = {"N", "R2", "R3", "1:2", "1:3", "1:4", "10%", "25%", "50%", "75%"};
+// Step division names
+static const char* DIV_NAMES[] = {"x1", "x2", "x3"};
 
-// Convert step mod to mode string
-static const char* modToString(int8_t mod) {
-  if (mod < 0 || mod >= STEP_MOD_COUNT) return "N";
-  return MOD_NAMES[mod];
+// Step condition names
+static const char* COND_NAMES[] = {"--", "1:2", "1:3", "1:4", "10%", "25%", "50%", "75%"};
+
+// Convert step division to string
+static const char* divToString(uint8_t div) {
+  if (div >= STEP_DIV_COUNT) return "x1";
+  return DIV_NAMES[div];
+}
+
+// Convert step condition to string
+static const char* condToString(uint8_t cond) {
+  if (cond >= STEP_COND_COUNT) return "--";
+  return COND_NAMES[cond];
 }
 
 Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) {
@@ -67,7 +76,8 @@ Lcd::Lcd(Arp& arp, MenuSelection& selection) : _arp(arp), _selection(selection) 
   _last_channel = 255;
   _last_swing = 0;
   _last_edit_note = -128;
-  _last_edit_mod = -128;
+  _last_edit_div = 255;
+  _last_edit_cond = 255;
   _last_edit_submode = 255;
 }
 
@@ -148,7 +158,8 @@ void Lcd::showIntro() {
 void Lcd::refresh(unsigned long now) {
   // Get current edit step values for comparison
   int8_t current_edit_note = _arp.editMode ? _arp.steps[_arp.editStep] : 0;
-  int8_t current_edit_mod = _arp.editMode ? _arp.steps_mods[_arp.editStep] : 0;
+  uint8_t current_edit_div = _arp.editMode ? _arp.steps_div[_arp.editStep] : 0;
+  uint8_t current_edit_cond = _arp.editMode ? _arp.steps_cond[_arp.editStep] : 0;
   uint8_t current_edit_submode = _arp.editMode ? _arp.editSubMode : 0;
 
   // Redraw when any displayed state changes
@@ -166,7 +177,8 @@ void Lcd::refresh(unsigned long now) {
       _arp.octaveRange == _last_octave_range &&
       _arp.density == _last_density &&
       current_edit_note == _last_edit_note &&
-      current_edit_mod == _last_edit_mod &&
+      current_edit_div == _last_edit_div &&
+      current_edit_cond == _last_edit_cond &&
       current_edit_submode == _last_edit_submode) {
     return;
   }
@@ -184,7 +196,8 @@ void Lcd::refresh(unsigned long now) {
   _last_octave_range = _arp.octaveRange;
   _last_density = _arp.density;
   _last_edit_note = current_edit_note;
-  _last_edit_mod = current_edit_mod;
+  _last_edit_div = current_edit_div;
+  _last_edit_cond = current_edit_cond;
   _last_edit_submode = current_edit_submode;
 
   u8g2.clearBuffer();
@@ -290,27 +303,38 @@ void Lcd::refresh(unsigned long now) {
     // Draw edit info box (covers settings row area)
     char note_buf[6];
     midiNoteToString(_arp.steps[_arp.editStep], note_buf, sizeof(note_buf));
-    const char* mode_str = modToString(_arp.steps_mods[_arp.editStep]);
+    const char* div_str = divToString(_arp.steps_div[_arp.editStep]);
+    const char* cond_str = condToString(_arp.steps_cond[_arp.editStep]);
 
     // Draw box background
     u8g2.drawFrame(0, 17, 127, 13);
 
+    // Layout: Note (left) | Div (center) | Cond (right)
     // Draw note label and value (highlight if EDIT_NOTE sub-mode)
     if (_arp.editSubMode == EDIT_NOTE) {
-      u8g2.drawBox(4, 17, 56, 12);
+      u8g2.drawBox(2, 17, 38, 12);
       u8g2.setDrawColor(0);
     }
-    u8g2.drawStr(6, 27, "Note:");
-    u8g2.drawStr(42, 27, note_buf);
+    u8g2.drawStr(4, 27, "N:");
+    u8g2.drawStr(16, 27, note_buf);
     u8g2.setDrawColor(1);
 
-    // Draw mode label and value (highlight if EDIT_MODE sub-mode)
-    if (_arp.editSubMode == EDIT_MODE) {
-      u8g2.drawBox(64, 17, 60, 12);
+    // Draw div label and value (highlight if EDIT_DIV sub-mode)
+    if (_arp.editSubMode == EDIT_DIV) {
+      u8g2.drawBox(42, 17, 32, 12);
       u8g2.setDrawColor(0);
     }
-    u8g2.drawStr(68, 27, "Mode:");
-    u8g2.drawStr(104, 27, mode_str);
+    u8g2.drawStr(44, 27, "D:");
+    u8g2.drawStr(56, 27, div_str);
+    u8g2.setDrawColor(1);
+
+    // Draw cond label and value (highlight if EDIT_COND sub-mode)
+    if (_arp.editSubMode == EDIT_COND) {
+      u8g2.drawBox(76, 17, 48, 12);
+      u8g2.setDrawColor(0);
+    }
+    u8g2.drawStr(78, 27, "C:");
+    u8g2.drawStr(90, 27, cond_str);
     u8g2.setDrawColor(1);
   } else {
     // Draw normal settings row with highlighting for selected item

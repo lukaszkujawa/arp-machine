@@ -9,21 +9,27 @@ enum ScaleId : uint8_t { MAJOR=0, MINOR, DORIAN, PENTA, HARM_MINOR, SCALE_COUNT 
 enum OctaveRange : uint8_t { OCT_3=0, OCT_2_3, OCT_3_4, OCT_2_4, OCT_RANGE_COUNT };
 
 // Edit sub-modes: what the encoder controls in edit mode
-enum EditSubMode : uint8_t { EDIT_SEQUENCE=0, EDIT_NOTE, EDIT_MODE, EDIT_SUBMODE_COUNT };
+enum EditSubMode : uint8_t { EDIT_SEQUENCE=0, EDIT_NOTE, EDIT_DIV, EDIT_COND, EDIT_SUBMODE_COUNT };
 
-// Step modifiers: how a note is played
-enum StepMod : uint8_t {
-  MOD_NORMAL=0,   // N - Normal single trigger
-  MOD_RATCHET2,   // R2 - Trigger twice with shorter gate
-  MOD_RATCHET3,   // R3 - Trigger three times
-  MOD_HALF,       // 1:2 - Trigger every second time
-  MOD_THIRD,      // 1:3 - Trigger every third time
-  MOD_QUARTER,    // 1:4 - Trigger every fourth time
-  MOD_PROB_10,    // 10% - 10% chance to trigger
-  MOD_PROB_25,    // 25% - 25% chance to trigger
-  MOD_PROB_50,    // 50% - 50% chance to trigger
-  MOD_PROB_75,    // 75% - 75% chance to trigger
-  STEP_MOD_COUNT
+// Step division (ratchet): how many times a note triggers within its step
+enum StepDiv : uint8_t {
+  DIV_1=0,   // x1 - Normal single trigger
+  DIV_2,     // x2 - Trigger twice (ratchet 2)
+  DIV_3,     // x3 - Trigger three times (ratchet 3)
+  STEP_DIV_COUNT
+};
+
+// Step trigger condition: when a note plays
+enum StepCond : uint8_t {
+  COND_ALWAYS=0, // Always trigger
+  COND_1_2,      // 1:2 - Trigger every second time
+  COND_1_3,      // 1:3 - Trigger every third time
+  COND_1_4,      // 1:4 - Trigger every fourth time
+  COND_PROB_10,  // 10% - 10% chance to trigger
+  COND_PROB_25,  // 25% - 25% chance to trigger
+  COND_PROB_50,  // 50% - 50% chance to trigger
+  COND_PROB_75,  // 75% - 75% chance to trigger
+  STEP_COND_COUNT
 }; 
 
 static const int8_t SCALE_STEPS[SCALE_COUNT][8] = { 
@@ -44,7 +50,8 @@ class Arp {
   public:
 
     int8_t steps[64];
-    int8_t steps_mods[64];
+    uint8_t steps_div[64];   // Division/ratchet per step (StepDiv)
+    uint8_t steps_cond[64];  // Trigger condition per step (StepCond)
     
     uint8_t x = 0;
     uint8_t root_note;
@@ -83,7 +90,8 @@ class Arp {
     void toggleCurrentStep();
     void cycleEditSubMode();
     void adjustCurrentStepNote(int8_t delta);
-    void adjustCurrentStepMod(int8_t delta);
+    void adjustCurrentStepDiv(int8_t delta);
+    void adjustCurrentStepCond(int8_t delta);
 
 
   private:

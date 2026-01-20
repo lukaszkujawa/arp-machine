@@ -15,15 +15,17 @@ static int8_t randomOctaveOffset(OctaveRange octaveRange) {
 void generateDefault(const GeneratorParams& params) {
   uint8_t base_note = params.rootNote + (params.octave * 12);
   int8_t* steps = params.steps;
-  int8_t* steps_mods = params.steps_mods;
+  uint8_t* steps_div = params.steps_div;
+  uint8_t* steps_cond = params.steps_cond;
   uint8_t density = params.density;
   ScaleId scale = params.scale;
   OctaveRange octaveRange = params.octaveRange;
   const int8_t (*scaleSteps)[8] = params.scaleSteps;
 
-  // Initialize all step modifiers to 0 (normal)
+  // Initialize all step divisions and conditions to defaults
   for (uint8_t i = 0; i < 64; i++) {
-    steps_mods[i] = 0;
+    steps_div[i] = 0;   // DIV_1 (normal)
+    steps_cond[i] = 0;  // COND_ALWAYS
   }
 
   // Generate first 16 steps (Page 1)
