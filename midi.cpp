@@ -55,3 +55,19 @@ void Midi::allNotesOff(uint8_t channel) {
 void Midi::setChannel(uint8_t ch) {
   _channel = ch & 0x0F;  // Ensure 0-15 range
 }
+
+void Midi::clock() {
+  sendByte(0xF8);  // MIDI Clock
+}
+
+void Midi::start() {
+  sendByte(0xFA);  // MIDI Start
+}
+
+void Midi::stop() {
+  sendByte(0xFC);  // MIDI Stop
+}
+
+void Midi::midiContinue() {
+  sendByte(0xFB);  // MIDI Continue
+}

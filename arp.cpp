@@ -5,7 +5,7 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   _next_note_on = 0;
   _next_note_off = 0;
   _note_playing = 0;
-  _paused = false;
+  _paused = true;  // Start paused by default
 
   // Ratchet state
   _ratchet_count = 0;

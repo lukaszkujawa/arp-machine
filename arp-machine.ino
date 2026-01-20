@@ -36,6 +36,10 @@ const uint32_t BTN_DEBOUNCE_MS = 200;
 const uint32_t ENC_DEBOUNCE_US = 1500;  // Microsecond debounce for encoder
 const uint32_t LONG_PRESS_MS = 3000;    // Long press threshold for clear sequence
 
+// MIDI clock state (24 PPQN - pulses per quarter note)
+unsigned long nextClockPulse = 0;
+bool globalPaused = true;  // Start paused by default
+
 // Encoder state - quadrature decoder
 uint8_t encState = 0;           // 2-bit state: (CLK << 1) | DT
 int8_t encAccum = 0;            // Accumulated pulses (need 4 for one detent)
@@ -64,6 +68,12 @@ uint8_t lastRegenBtn = HIGH;
 uint32_t regenPressStartMs = 0;
 uint32_t regenLastChangeMs = 0;
 bool regenLongPressTriggered = false;
+
+// Calculate MIDI clock interval in microseconds from BPM
+// MIDI clock = 24 pulses per quarter note
+unsigned long getClockInterval(uint8_t bpm) {
+  return 60000000UL / bpm / 24;
+}
 
 void IRAM_ATTR isrPause() {
   uint32_t now = millis();
@@ -206,8 +216,15 @@ void handleButtons() {
   if (mask & 0x02) {
     pendingMask &= ~0x02;
     // Pause/unpause all sequencers
+    globalPaused = !globalPaused;
     for (uint8_t i = 0; i < 4; i++) {
       arps[i]->togglePause();
+    }
+    // Send MIDI Start or Stop
+    if (globalPaused) {
+      midi.stop();
+    } else {
+      midi.start();
     }
   }
   if (mask & 0x04) {
@@ -265,6 +282,13 @@ void loop() {
   handleEncButton();
   handleRegenButton();
   handleButtons();
+
+  // Send MIDI clock pulses (always, regardless of pause state)
+  // Use arp0's BPM as master clock
+  if ((long)(now - nextClockPulse) >= 0) {
+    midi.clock();
+    nextClockPulse = now + getClockInterval(arp0.getBpm());
+  }
 
   // Tick all 4 sequencers
   for (uint8_t i = 0; i < 4; i++) {
