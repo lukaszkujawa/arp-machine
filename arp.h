@@ -9,14 +9,16 @@ enum ScaleId : uint8_t { MAJOR=0, MINOR, DORIAN, PENTA, HARM_MINOR, SCALE_COUNT 
 enum OctaveRange : uint8_t { OCT_3=0, OCT_2_3, OCT_3_4, OCT_2_4, OCT_RANGE_COUNT };
 
 // Edit sub-modes: what the encoder controls in edit mode
-enum EditSubMode : uint8_t { EDIT_SEQUENCE=0, EDIT_NOTE, EDIT_DIV, EDIT_COND, EDIT_SUBMODE_COUNT };
+enum EditSubMode : uint8_t { EDIT_SEQUENCE=0, EDIT_NOTE, EDIT_FX, EDIT_COND, EDIT_SUBMODE_COUNT };
 
-// Step division (ratchet): how many times a note triggers within its step
-enum StepDiv : uint8_t {
-  DIV_1=0,   // x1 - Normal single trigger
-  DIV_2,     // x2 - Trigger twice (ratchet 2)
-  DIV_3,     // x3 - Trigger three times (ratchet 3)
-  STEP_DIV_COUNT
+// Step effect type: modifies how a step plays
+enum StepFx : uint8_t {
+  FX_1=0,    // x1 - Normal single trigger
+  FX_2,      // x2 - Trigger twice (ratchet 2)
+  FX_3,      // x3 - Trigger three times (ratchet 3)
+  FX_R1,     // R1 - Random note within scale, octave 3
+  FX_R2,     // R2 - Random note within scale, octave 2-4
+  STEP_FX_COUNT
 };
 
 // Step trigger condition: when a note plays
@@ -50,7 +52,7 @@ class Arp {
   public:
 
     int8_t steps[64];
-    uint8_t steps_div[64];   // Division/ratchet per step (StepDiv)
+    uint8_t steps_fx[64];    // Effect type per step (StepFx)
     uint8_t steps_cond[64];  // Trigger condition per step (StepCond)
     
     uint8_t x = 0;
@@ -91,7 +93,7 @@ class Arp {
     void toggleCurrentStep();
     void cycleEditSubMode();
     void adjustCurrentStepNote(int8_t delta);
-    void adjustCurrentStepDiv(int8_t delta);
+    void adjustCurrentStepFx(int8_t delta);
     void adjustCurrentStepCond(int8_t delta);
 
 

@@ -42,16 +42,16 @@ static void midiNoteToString(int8_t note, char* buf, size_t bufSize) {
   snprintf(buf, bufSize, "%s%d", NOTE_NAMES[noteInOctave], octave);
 }
 
-// Step division names
-static const char* DIV_NAMES[] = {"x1", "x2", "x3"};
+// Step effect names
+static const char* FX_NAMES[] = {"x1", "x2", "x3", "R1", "R2"};
 
 // Step condition names
 static const char* COND_NAMES[] = {"--", "1:2", "1:3", "1:4", "10%", "25%", "50%", "75%"};
 
-// Convert step division to string
-static const char* divToString(uint8_t div) {
-  if (div >= STEP_DIV_COUNT) return "x1";
-  return DIV_NAMES[div];
+// Convert step effect to string
+static const char* fxToString(uint8_t fx) {
+  if (fx >= STEP_FX_COUNT) return "x1";
+  return FX_NAMES[fx];
 }
 
 // Convert step condition to string
@@ -77,7 +77,7 @@ Lcd::Lcd(Arp* arp, MenuSelection& selection, uint8_t& currentPage)
   _last_channel = 255;
   _last_swing = 0;
   _last_edit_note = -128;
-  _last_edit_div = 255;
+  _last_edit_fx = 255;
   _last_edit_cond = 255;
   _last_edit_submode = 255;
   _last_page = 255;
@@ -164,7 +164,7 @@ void Lcd::showIntro() {
 void Lcd::refresh(unsigned long now) {
   // Get current edit step values for comparison
   int8_t current_edit_note = _arp->editMode ? _arp->steps[_arp->editStep] : 0;
-  uint8_t current_edit_div = _arp->editMode ? _arp->steps_div[_arp->editStep] : 0;
+  uint8_t current_edit_fx = _arp->editMode ? _arp->steps_fx[_arp->editStep] : 0;
   uint8_t current_edit_cond = _arp->editMode ? _arp->steps_cond[_arp->editStep] : 0;
   uint8_t current_edit_submode = _arp->editMode ? _arp->editSubMode : 0;
 
@@ -183,7 +183,7 @@ void Lcd::refresh(unsigned long now) {
       _arp->octaveRange == _last_octave_range &&
       _arp->density == _last_density &&
       current_edit_note == _last_edit_note &&
-      current_edit_div == _last_edit_div &&
+      current_edit_fx == _last_edit_fx &&
       current_edit_cond == _last_edit_cond &&
       current_edit_submode == _last_edit_submode &&
       _currentPage == _last_page) {
@@ -203,7 +203,7 @@ void Lcd::refresh(unsigned long now) {
   _last_octave_range = _arp->octaveRange;
   _last_density = _arp->density;
   _last_edit_note = current_edit_note;
-  _last_edit_div = current_edit_div;
+  _last_edit_fx = current_edit_fx;
   _last_edit_cond = current_edit_cond;
   _last_edit_submode = current_edit_submode;
   _last_page = _currentPage;
@@ -326,13 +326,13 @@ void Lcd::refresh(unsigned long now) {
     // Draw edit info box (covers settings row area)
     char note_buf[6];
     midiNoteToString(_arp->steps[_arp->editStep], note_buf, sizeof(note_buf));
-    const char* div_str = divToString(_arp->steps_div[_arp->editStep]);
+    const char* fx_str = fxToString(_arp->steps_fx[_arp->editStep]);
     const char* cond_str = condToString(_arp->steps_cond[_arp->editStep]);
 
     // Draw box background
     u8g2.drawFrame(0, 17, 127, 13);
 
-    // Layout: Note (left) | Div (center) | Cond (right)
+    // Layout: Note (left) | Fx (center) | Cond (right)
     // Draw note label and value (highlight if EDIT_NOTE sub-mode)
     if (_arp->editSubMode == EDIT_NOTE) {
       u8g2.drawBox(2, 17, 38, 12);
@@ -342,13 +342,13 @@ void Lcd::refresh(unsigned long now) {
     u8g2.drawStr(16, 27, note_buf);
     u8g2.setDrawColor(1);
 
-    // Draw div label and value (highlight if EDIT_DIV sub-mode)
-    if (_arp->editSubMode == EDIT_DIV) {
+    // Draw fx label and value (highlight if EDIT_FX sub-mode)
+    if (_arp->editSubMode == EDIT_FX) {
       u8g2.drawBox(42, 17, 32, 12);
       u8g2.setDrawColor(0);
     }
-    u8g2.drawStr(44, 27, "D:");
-    u8g2.drawStr(56, 27, div_str);
+    u8g2.drawStr(44, 27, "F:");
+    u8g2.drawStr(56, 27, fx_str);
     u8g2.setDrawColor(1);
 
     // Draw cond label and value (highlight if EDIT_COND sub-mode)

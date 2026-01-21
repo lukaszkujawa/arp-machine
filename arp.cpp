@@ -17,8 +17,8 @@ Arp::Arp(Midi& midi) : _midi(midi) {
   // Trigger condition counters - all steps start at 0 (will play first time)
   memset(_step_trigger_counter, 0, sizeof(_step_trigger_counter));
 
-  // Initialize step divisions and conditions to defaults
-  memset(steps_div, DIV_1, sizeof(steps_div));
+  // Initialize step effects and conditions to defaults
+  memset(steps_fx, FX_1, sizeof(steps_fx));
   memset(steps_cond, COND_ALWAYS, sizeof(steps_cond));
 
   octave = 4;  // Default octave (C4 = MIDI 48)
@@ -52,7 +52,7 @@ int8_t Arp::_randomOctaveOffset() {
 void Arp::regenerate() {
   GeneratorParams params = {
     steps,
-    steps_div,
+    steps_fx,
     steps_cond,
     64,
     root_note,
@@ -71,7 +71,7 @@ void Arp::regenerate() {
 void Arp::clearSequence() {
   for (uint8_t i = 0; i < 64; i++) {
     steps[i] = 0;
-    steps_div[i] = DIV_1;
+    steps_fx[i] = FX_1;
     steps_cond[i] = COND_ALWAYS;
   }
   x = 0;  // Reset step position
@@ -178,7 +178,7 @@ void Arp::tick(unsigned long now) {
 
   if(_note_playing == 0 && _ratchet_count == 0 && (long)(now - _next_note_on) >= 0) {
     uint8_t note = steps[x];
-    uint8_t div = steps_div[x];
+    uint8_t fx = steps_fx[x];
     uint8_t cond = steps_cond[x];
 
     bool should_play = true;
@@ -208,30 +208,44 @@ void Arp::tick(unsigned long now) {
     }
 
     if (note > 0 && should_play) {
-      _note_playing = note;
+      uint8_t play_note = note;
+
+      // Handle random note effects (R1, R2)
+      if (fx == FX_R1) {
+        // R1: Random note within scale, octave 3 only (MIDI octave 4 = display octave 3)
+        uint8_t scale_degree = random(0, 8);
+        play_note = root_note + (4 * 12) + SCALE_STEPS[scale][scale_degree];
+      } else if (fx == FX_R2) {
+        // R2: Random note within scale, random octave 2-4 (MIDI 3-5)
+        uint8_t scale_degree = random(0, 8);
+        uint8_t rand_octave = random(3, 6);  // MIDI octaves 3, 4, or 5
+        play_note = root_note + (rand_octave * 12) + SCALE_STEPS[scale][scale_degree];
+      }
+
+      _note_playing = play_note;
       digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));  // Toggle LED on each note
 
-      // Set up gate time and ratchet based on division
+      // Set up gate time and ratchet based on effect
       unsigned long gate = _note_gate_ms;
       _ratchet_count = 0;
 
-      if (div == DIV_2) {
+      if (fx == FX_2) {
         // 2 hits: divide 1/16 step into 2x 1/32 notes
         // Gate = 50% of 1/32 = 1/64 note duration
         _ratchet_interval = _note_delays_ms / 2;
         _ratchet_gate = _ratchet_interval / 2;
         gate = _ratchet_gate;
         _ratchet_count = 1;
-        _ratchet_note = note;
+        _ratchet_note = play_note;
         _next_ratchet_on = now + _ratchet_interval;
-      } else if (div == DIV_3) {
+      } else if (fx == FX_3) {
         // 3 hits: divide 1/16 step into 3 equal sub-notes
         // Gate = 50% of each sub-note duration
         _ratchet_interval = _note_delays_ms / 3;
         _ratchet_gate = _ratchet_interval / 2;
         gate = _ratchet_gate;
         _ratchet_count = 2;
-        _ratchet_note = note;
+        _ratchet_note = play_note;
         _next_ratchet_on = now + _ratchet_interval;
       }
 
@@ -264,12 +278,12 @@ void Arp::toggleEditMode() {
 void Arp::cycleEditSubMode() {
   EditSubMode nextMode = (EditSubMode)((editSubMode + 1) % EDIT_SUBMODE_COUNT);
 
-  // If entering note/div/cond editing and current step is inactive, activate it first
-  if ((nextMode == EDIT_NOTE || nextMode == EDIT_DIV || nextMode == EDIT_COND) && steps[editStep] == 0) {
+  // If entering note/fx/cond editing and current step is inactive, activate it first
+  if ((nextMode == EDIT_NOTE || nextMode == EDIT_FX || nextMode == EDIT_COND) && steps[editStep] == 0) {
     uint8_t base_note = root_note + (octave * 12);
     uint8_t scale_degree = random(0, 8);
     steps[editStep] = base_note + SCALE_STEPS[scale][scale_degree] + _randomOctaveOffset();
-    steps_div[editStep] = DIV_1;      // Normal division (1x)
+    steps_fx[editStep] = FX_1;        // Normal effect (1x)
     steps_cond[editStep] = COND_ALWAYS; // Always trigger
   }
 
@@ -292,7 +306,7 @@ void Arp::toggleCurrentStep() {
     uint8_t base_note = root_note + (octave * 12);
     uint8_t scale_degree = random(0, 8);
     steps[editStep] = base_note + SCALE_STEPS[scale][scale_degree] + _randomOctaveOffset();
-    steps_div[editStep] = DIV_1;      // Normal division (1x)
+    steps_fx[editStep] = FX_1;        // Normal effect (1x)
     steps_cond[editStep] = COND_ALWAYS; // Always trigger
   }
 }
@@ -360,17 +374,17 @@ void Arp::adjustCurrentStepNote(int8_t delta) {
   steps[editStep] = newNote;
 }
 
-void Arp::adjustCurrentStepDiv(int8_t delta) {
+void Arp::adjustCurrentStepFx(int8_t delta) {
   // Only adjust if step has a note
   if (steps[editStep] <= 0) return;
 
-  int8_t newDiv = steps_div[editStep] + delta;
+  int8_t newFx = steps_fx[editStep] + delta;
 
   // Wrap around
-  if (newDiv < 0) newDiv = STEP_DIV_COUNT - 1;
-  if (newDiv >= STEP_DIV_COUNT) newDiv = 0;
+  if (newFx < 0) newFx = STEP_FX_COUNT - 1;
+  if (newFx >= STEP_FX_COUNT) newFx = 0;
 
-  steps_div[editStep] = newDiv;
+  steps_fx[editStep] = newFx;
 }
 
 void Arp::adjustCurrentStepCond(int8_t delta) {

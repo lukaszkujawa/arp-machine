@@ -10,7 +10,7 @@ A hardware MIDI arpeggiator built on the ESP8266 microcontroller. Generates rhyt
 - **64-step sequences** with 4 rows of 16 steps, adjustable length (1-64)
 - **5 musical scales**: Major, Minor, Dorian, Pentatonic, Harmonic Minor
 - **Adjustable parameters**: BPM (40-240), root note, scale, octave range, note density, swing
-- **Per-step division**: x1 (normal), x2 (ratchet), x3 (ratchet) for rhythmic variation
+- **Per-step effects (Fx)**: x1 (normal), x2/x3 (ratchet), R1/R2 (random notes) for rhythmic and melodic variation
 - **Per-step trigger conditions**: Always, 1:2, 1:3, 1:4, or probability-based (10%, 25%, 50%, 75%)
 - **Sequence editing**: Full control over step notes, division, and trigger conditions
 - **Multiple generators**: Default rhythmic patterns, Chord arpeggios
@@ -27,6 +27,11 @@ A hardware MIDI arpeggiator built on the ESP8266 microcontroller. Generates rhyt
 | Rotary Encoder | With push button (e.g., KY-040) |
 | 3x Buttons | Momentary push buttons |
 | MIDI Output | Serial TX to MIDI DIN circuit |
+| 2x Resistors | 220 Ohm (for MIDI circuit) |
+
+### Wiring Diagram
+
+![Wiring Diagram](./img/wiring-diagram.svg)
 
 ### Pin Configuration
 
@@ -76,22 +81,24 @@ When in **Edit** mode, press **BTN_REGEN** to cycle through sub-modes:
 | Sub-mode | Display | Encoder Action |
 |----------|---------|----------------|
 | Sequence | Neither highlighted | Move cursor through steps |
-| Note | "Note:" highlighted | Change note pitch (octave 2-4, follows scale) |
-| Div | "Div:" highlighted | Change step division (x1, x2, x3) |
-| Cond | "Cond:" highlighted | Change trigger condition |
+| Note | "N:" highlighted | Change note pitch (octave 2-4, follows scale) |
+| Fx | "F:" highlighted | Change step effect (x1, x2, x3, R1, R2) |
+| Cond | "C:" highlighted | Change trigger condition |
 
 - **Press encoder**: Toggle step on/off (in Sequence sub-mode)
 - **Long-press BTN_REGEN** (3 seconds): Clear entire sequence
 - Enabling a step generates a random note following current root, scale, and octave settings
 - Edit cursor always starts at step 0
 
-### Step Division (Ratchets)
+### Step Effects (Fx)
 
-| Division | Name | Effect |
-|----------|------|--------|
+| Effect | Name | Description |
+|--------|------|-------------|
 | x1 | Normal | Single note trigger per step |
 | x2 | Ratchet x2 | Two 1/32 notes within the 1/16 step |
 | x3 | Ratchet x3 | Three notes within the 1/16 step |
+| R1 | Random 1 | Random note within scale, octave 3 only |
+| R2 | Random 2 | Random note within scale, random octave 2-4 |
 
 ### Step Trigger Conditions
 
@@ -163,16 +170,16 @@ arp-machine/
 - `loop()` - Main event loop at ~µs resolution, ticks all 4 sequencers
 
 #### `arp.h / arp.cpp` - Arpeggiator Engine
-- 64-step pattern buffer with note values, division, and trigger conditions
+- 64-step pattern buffer with note values, effects, and trigger conditions
 - Microsecond timing using `micros()` for note on/off scheduling
 - Scale-aware note generation with configurable density
-- Per-step division (ratchets x1/x2/x3) and trigger conditions (always, divisor, probability)
-- Edit mode with sub-modes for sequence, note, division, and condition editing
+- Per-step effects (x1/x2/x3 ratchets, R1/R2 random notes) and trigger conditions (always, divisor, probability)
+- Edit mode with sub-modes for sequence, note, effect, and condition editing
 - Per-sequencer MIDI channel and swing settings
 
 **Key members:**
 - `steps[64]` - Note values (0 = rest, >0 = MIDI note number)
-- `steps_div[64]` - Step division/ratchet (x1, x2, x3)
+- `steps_fx[64]` - Step effect (x1, x2, x3, R1, R2)
 - `steps_cond[64]` - Step trigger condition (always, 1:2, 1:3, 1:4, probability)
 - `channel` - MIDI channel (0-15, displayed as 1-16)
 - `swing` - Swing amount (50-75%)
@@ -225,7 +232,7 @@ void allNotesOff();
 ```
 ┌────────────────────────────┐
 │ 1 CH1 Sw50 64 D      ● 120 │  ← Header
-│ Note:C3  Div:x1  Cond:1:2  │  ← Edit info (note, division, condition)
+│ N:C3    F:x1    C:1:2      │  ← Edit info (note, effect, condition)
 │ ■■□■ ■□■□ ■■□■ □■□■       │  ← Step grid with edit cursor
 │ ■■□■ ■□■□ ■■□■ □■□■       │
 │ ■■□■ ■□■□ ■■□■ □■□■       │
