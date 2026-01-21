@@ -29,9 +29,6 @@ A hardware MIDI arpeggiator built on the ESP8266 microcontroller. Generates rhyt
 | MIDI Output | Serial TX to MIDI DIN circuit |
 | 2x Resistors | 220 Ohm (for MIDI circuit) |
 
-### Wiring Diagram
-
-![Wiring Diagram](./img/wiring-diagram.svg)
 
 ### Pin Configuration
 
