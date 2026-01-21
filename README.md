@@ -280,3 +280,4 @@ Feel free to submit issues and pull requests. Key areas for contribution:
 ## License
 
 MIT License - See LICENSE file for details.
+
